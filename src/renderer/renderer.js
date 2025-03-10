@@ -510,45 +510,42 @@ function switchTab(tabName) {
 
 // Start project review workflow
 async function startProjectReview() {
-  console.log('Starting project review');
+  console.log('Starting project review workflow');
   
-  // Ensure we have the latest project data
-  try {
-    const refreshedData = await loadProjects();
-    if (!refreshedData) {
-      console.error('Failed to refresh project data');
-      showNotification('Error refreshing project data', 'error');
-      return;
-    }
-    console.log('Projects refreshed for review');
-  } catch (error) {
-    console.error('Error refreshing projects:', error);
-    showNotification('Error refreshing projects', 'error');
+  // Initialize review elements if not already initialized
+  if (!reviewProjectTitle || !reviewProjectContent || !reviewCount || !reviewTotal) {
+    console.log('Initializing review elements before starting review');
+    reviewProjectTitle = document.getElementById('review-project-title');
+    reviewProjectContent = document.getElementById('review-project-content');
+    reviewCount = document.getElementById('review-count');
+    reviewTotal = document.getElementById('review-total');
+    startReviewBtn = document.getElementById('start-review-btn');
+    nextReviewBtn = document.getElementById('next-review-btn');
+  }
+  
+  // Verify review elements are available
+  if (!reviewProjectTitle || !reviewProjectContent || !reviewCount || !reviewTotal) {
+    console.error('Review elements not found');
+    showNotification('Error: Review elements not found. Please refresh the page.', 'error');
     return;
   }
+  
+  // Reset review state
+  currentReviewIndex = 0;
+  reviewProjects = [];
+  
+  // Check if projects data is available
+  if (!projectsData || !projectsData.active || projectsData.active.length === 0) {
+    console.error('No active projects available for review');
+    showNotification('No active projects available for review', 'error');
+    return;
+  }
+  
+  // Get active projects for review
+  reviewProjects = [...projectsData.active];
   
   console.log('Projects data:', projectsData);
-  
-  // Check if we have active projects to review
-  if (!projectsData) {
-    console.error('No projects data available');
-    showNotification('Error: No projects data available', 'error');
-    return;
-  }
-  
   console.log('Active projects:', projectsData.active);
-  
-  if (!projectsData.active || projectsData.active.length === 0) {
-    console.log('No active projects found in projectsData');
-    showNotification('No active projects to review', 'warning');
-    return;
-  }
-  
-  // Initialize review mode
-  isReviewMode = true;
-  reviewProjects = [...projectsData.active];
-  currentReviewIndex = 0;
-  
   console.log('Review projects array:', reviewProjects);
   console.log('First review project:', reviewProjects[0]);
   
@@ -589,11 +586,22 @@ function showReviewProject(project) {
   // Store current project for review
   currentReviewProject = project;
   
-  // Update UI elements
+  // Initialize review elements if they're not already initialized
+  if (!reviewProjectTitle || !reviewProjectContent) {
+    console.log('Re-initializing review elements');
+    reviewProjectTitle = document.getElementById('review-project-title');
+    reviewProjectContent = document.getElementById('review-project-content');
+    reviewCount = document.getElementById('review-count');
+    reviewTotal = document.getElementById('review-total');
+  }
+  
+  // Update UI elements with null checks
   if (reviewProjectTitle) {
     reviewProjectTitle.textContent = project.title || 'Untitled Project';
   } else {
     console.error('Review project title element not found');
+    showNotification('Error: Review elements not found. Please refresh the page.', 'error');
+    return;
   }
   
   if (reviewProjectContent) {
@@ -605,6 +613,8 @@ function showReviewProject(project) {
     }
   } else {
     console.error('Review project content element not found');
+    showNotification('Error: Review elements not found. Please refresh the page.', 'error');
+    return;
   }
   
   // Enable next button
