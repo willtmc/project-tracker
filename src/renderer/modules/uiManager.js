@@ -193,7 +193,12 @@ function showNotification(message, type = 'info', duration = 3000) {
   // Create notification element
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
-  notification.textContent = message;
+  
+  // Create message container to separate it from the close button
+  const messageContainer = document.createElement('span');
+  messageContainer.className = 'notification-message';
+  messageContainer.textContent = message;
+  notification.appendChild(messageContainer);
   
   // Add close button
   const closeBtn = document.createElement('span');

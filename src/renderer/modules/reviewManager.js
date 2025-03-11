@@ -24,16 +24,16 @@ function initializeReviewElements() {
   console.log('Initializing review elements');
   
   // Get review container and elements
-  reviewContainer = document.getElementById('review-container');
+  reviewContainer = document.querySelector('.review-container');
   reviewProjectTitle = document.getElementById('review-project-title');
   reviewProjectContent = document.getElementById('review-project-content');
-  reviewInstructions = document.getElementById('review-instructions');
+  reviewInstructions = document.querySelector('.review-instructions');
   
   // Get waiting input dialog elements
-  waitingInputDialog = document.getElementById('waiting-input-dialog');
+  waitingInputDialog = document.getElementById('waiting-dialog');
   waitingInputText = document.getElementById('waiting-input-text');
-  waitingInputSaveBtn = document.getElementById('waiting-input-save');
-  waitingInputCancelBtn = document.getElementById('waiting-input-cancel');
+  waitingInputSaveBtn = document.getElementById('waiting-submit-btn');
+  waitingInputCancelBtn = document.getElementById('waiting-cancel-btn');
   
   // Log review elements for debugging
   const reviewElements = {
@@ -97,6 +97,18 @@ function startProjectReview() {
     </ul>
   `;
   
+  // Initialize review counter
+  const reviewCount = document.getElementById('review-count');
+  const reviewTotal = document.getElementById('review-total');
+  
+  if (reviewCount) {
+    reviewCount.textContent = '0';
+  }
+  
+  if (reviewTotal) {
+    reviewTotal.textContent = reviewProjects.length.toString();
+  }
+  
   // Display first project
   displayCurrentProject();
   
@@ -132,6 +144,18 @@ function displayCurrentProject() {
     reviewProjectContent.textContent = currentProject.content || 'No content';
   }
   
+  // Update review progress
+  const reviewCount = document.getElementById('review-count');
+  const reviewTotal = document.getElementById('review-total');
+  
+  if (reviewCount) {
+    reviewCount.textContent = currentReviewIndex.toString();
+  }
+  
+  if (reviewTotal) {
+    reviewTotal.textContent = reviewProjects.length.toString();
+  }
+  
   console.log(`Displaying project ${currentReviewIndex + 1}/${reviewProjects.length}: ${currentProject.title}`);
 }
 
@@ -142,6 +166,13 @@ function moveToNextProject() {
   if (!isInReviewMode) {
     console.error('Cannot move to next project: not in review mode');
     return;
+  }
+  
+  // Update review counter
+  const reviewCount = document.getElementById('review-count');
+  if (reviewCount) {
+    // Increment the displayed count (current index + 1 because we're moving to the next)
+    reviewCount.textContent = (currentReviewIndex + 1).toString();
   }
   
   // Increment review index
@@ -170,7 +201,7 @@ function endReview() {
   }
   
   // Show notification
-  uiManager.showNotification('Project review completed', 'success');
+  uiManager.showNotification('Review completed', 'success');
   
   // Reload projects to reflect any changes
   const renderer = require('../renderer-new');
@@ -192,7 +223,7 @@ function cancelReview() {
   }
   
   // Show notification
-  uiManager.showNotification('Project review canceled', 'info');
+  uiManager.showNotification('Review canceled', 'info');
 }
 
 /**
@@ -266,7 +297,7 @@ function saveWaitingInput(project) {
   // Update project status to waiting with input
   projectData.updateProjectStatus(project, 'waiting', waitingInput)
     .then(() => {
-      uiManager.showNotification(`Project "${project.title}" moved to waiting`, 'success');
+      uiManager.showNotification(`Moved "${project.title}" to waiting`, 'success');
       hideWaitingInputDialog();
       moveToNextProject();
     })
@@ -294,12 +325,21 @@ function hideWaitingInputDialog() {
 function setupReviewEventListeners() {
   console.log('Setting up review event listeners');
   
-  // Set up review button
-  const reviewBtn = document.getElementById('review-btn');
-  if (reviewBtn) {
-    reviewBtn.addEventListener('click', () => {
-      console.log('Review button clicked');
+  // Set up start review button
+  const startReviewBtn = document.getElementById('start-review-btn');
+  if (startReviewBtn) {
+    startReviewBtn.addEventListener('click', () => {
+      console.log('Start review button clicked');
       startProjectReview();
+    });
+  }
+  
+  // Set up next review button
+  const nextReviewBtn = document.getElementById('next-review-btn');
+  if (nextReviewBtn) {
+    nextReviewBtn.addEventListener('click', () => {
+      console.log('Next review button clicked');
+      moveToNextProject();
     });
   }
   

@@ -26,7 +26,7 @@ function handleReviewKeydown(event) {
   switch (event.key.toLowerCase()) {
     case 'y': // Yes - keep project active
       console.log('Keeping project active');
-      uiManager.showNotification(`Keeping "${currentProject.title}" active`, 'success');
+      uiManager.showNotification(`Keeping "${currentProject.title}"`, 'success');
       reviewManager.moveToNextProject();
       break;
       
@@ -34,7 +34,7 @@ function handleReviewKeydown(event) {
       console.log('Archiving project');
       projectData.updateProjectStatus(currentProject, 'archive')
         .then(() => {
-          uiManager.showNotification(`Project "${currentProject.title}" archived`, 'success');
+          uiManager.showNotification(`Archived "${currentProject.title}"`, 'success');
           reviewManager.moveToNextProject();
         })
         .catch(error => {
@@ -47,7 +47,7 @@ function handleReviewKeydown(event) {
       console.log('Moving project to someday');
       projectData.updateProjectStatus(currentProject, 'someday')
         .then(() => {
-          uiManager.showNotification(`Project "${currentProject.title}" moved to someday`, 'success');
+          uiManager.showNotification(`Moved "${currentProject.title}" to someday`, 'success');
           reviewManager.moveToNextProject();
         })
         .catch(error => {
