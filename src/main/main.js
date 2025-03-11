@@ -21,7 +21,7 @@ try {
 // Conditionally import project manager
 let ProjectManager;
 try {
-  const pm = require('../utils/projectManager');
+  const pm = require('../utils');
   ProjectManager = pm.ProjectManager;
 } catch (e) {
   console.error('Error loading project manager module:', e);
@@ -31,6 +31,9 @@ try {
     async validateProject() { return { success: false, message: 'ProjectManager not available' }; }
     async reformulateProject() { return { success: false, message: 'ProjectManager not available' }; }
     async generateReport() { return { success: false, message: 'ProjectManager not available' }; }
+    async findPotentialDuplicates() { return { success: false, message: 'ProjectManager not available' }; }
+    async mergeDuplicateProjects() { return { success: false, message: 'ProjectManager not available' }; }
+    async getProjectsWithPotentialDuplicates() { return { success: false, message: 'ProjectManager not available' }; }
   };
 }
 
@@ -228,14 +231,42 @@ ipcMain.handle('validate-project', async (event, { projectPath }) => {
   }
 });
 
-ipcMain.handle('reformulate-project', async (event, { projectPath, endState }) => {
+ipcMain.handle('reformulate-project', async (event, { project, endState }) => {
   try {
-    console.log('Main process: reformulate-project called');
+    console.log('Main process: reformulate-project called', { project, endState });
     const projectManager = new ProjectManager();
-    return await projectManager.reformulateProject(projectPath, endState);
+    
+    // Call the project manager to reformulate the project
+    const result = await projectManager.reformulateProject(project.path, endState);
+    
+    if (result.success) {
+      // Extract title from content
+      const titleMatch = result.reformulatedContent.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1].trim() : result.newFilename;
+      
+      // Create a project object with the reformulated data
+      const reformulatedProject = {
+        id: result.newFilename,
+        title: title,
+        path: project.path.replace(path.basename(project.path), result.newFilename),
+        status: project.status || 'active',
+        content: result.reformulatedContent,
+        isWellFormulated: result.isWellFormulated,
+        lastModified: new Date().toISOString()
+      };
+      
+      // Notify the renderer process that the project has been updated
+      if (mainWindow) {
+        mainWindow.webContents.send('project-saved', reformulatedProject.id);
+      }
+      
+      return { success: true, project: reformulatedProject };
+    } else {
+      return { success: false, message: result.message };
+    }
   } catch (error) {
-    console.error('Error in reformulate-project handler:', error);
-    return { success: false, message: error.toString() };
+    console.error('Error reformulating project:', error);
+    return { success: false, message: error.message };
   }
 });
 
@@ -246,6 +277,63 @@ ipcMain.handle('generate-report', async () => {
     return await projectManager.generateReport();
   } catch (error) {
     console.error('Error in generate-report handler:', error);
+    return { success: false, message: error.toString() };
+  }
+});
+
+ipcMain.handle('find-potential-duplicates', async () => {
+  try {
+    console.log('Main process: find-potential-duplicates called');
+    const projectManager = new ProjectManager();
+    const result = await projectManager.findPotentialDuplicates();
+    
+    // Log the duplicate groups for debugging
+    if (result.success && result.duplicateGroups) {
+      console.log(`Main process: Found ${result.duplicateGroups.length} duplicate groups`);
+      
+      // Ensure the duplicate groups are properly structured for the renderer
+      // Each group should be an array of project objects with at least title, path, and content
+      const sanitizedGroups = result.duplicateGroups.map(group => {
+        return group.map(project => ({
+          title: project.title || 'Untitled',
+          path: project.path || '',
+          content: project.content || '',
+          status: project.status || 'active'
+        }));
+      });
+      
+      console.log('Main process: Returning sanitized duplicate groups to renderer');
+      return { success: true, duplicateGroups: sanitizedGroups };
+    } else {
+      console.log('Main process: No duplicate groups found or error in result');
+      return { success: false, message: 'No duplicate groups found' };
+    }
+  } catch (error) {
+    console.error('Error in find-potential-duplicates handler:', error);
+    return { success: false, message: error.toString() };
+  }
+});
+
+ipcMain.handle('merge-duplicate-projects', async (event, { projectPaths }) => {
+  try {
+    console.log('Main process: merge-duplicate-projects called');
+    const projectManager = new ProjectManager();
+    const result = await projectManager.mergeDuplicateProjects(projectPaths);
+    return result;
+  } catch (error) {
+    console.error('Error in merge-duplicate-projects handler:', error);
+    return { success: false, message: error.toString() };
+  }
+});
+
+ipcMain.handle('get-projects-with-duplicates', async () => {
+  try {
+    console.log('Main process: get-projects-with-duplicates called');
+    const projectManager = new ProjectManager();
+    const projects = await projectManager.getProjectsWithPotentialDuplicates();
+    return { success: true, projects };
+  } catch (error) {
+    console.error('Error in get-projects-with-duplicates handler:', error);
     return { success: false, message: error.toString() };
   }
 });
