@@ -49,6 +49,18 @@ const Project = sequelize.define('Project', {
   isWellFormulated: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  needsImprovement: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  issues: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  hasPotentialDuplicates: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 });
 
