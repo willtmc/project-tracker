@@ -50,9 +50,9 @@ async function switchTab(tabName) {
     pane.style.display = 'none';
   });
   
-  // Remove active class from all buttons
-  tabButtons.forEach(button => {
-    button.classList.remove('active');
+  // Remove active class from all tab buttons
+  tabButtons.forEach(btn => {
+    btn.classList.remove('active');
   });
   
   // Show the selected tab pane
@@ -60,19 +60,18 @@ async function switchTab(tabName) {
   if (selectedPane) {
     selectedPane.style.display = 'block';
   } else {
-    console.error(`Tab pane not found: ${tabName}-tab`);
-    return;
+    console.error(`Tab pane for ${tabName} not found`);
   }
   
-  // Add active class to the selected button
+  // Add active class to the selected tab button
   const selectedButton = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
   if (selectedButton) {
     selectedButton.classList.add('active');
   } else {
-    console.error(`Tab button not found for: ${tabName}`);
+    console.error(`Tab button for ${tabName} not found`);
   }
   
-  // Special handling for specific tabs
+  // Special handling for different tabs
   if (tabName === 'review') {
     // Initialize review elements when switching to review tab
     const reviewModule = require('./reviewManager');
@@ -81,6 +80,9 @@ async function switchTab(tabName) {
     // Generate report when switching to report tab
     const reportModule = require('./reportManager');
     reportModule.generateReport();
+  } else if (tabName === 'well-formulation') {
+    // Handle well-formulation tab
+    console.log('Handling well-formulation tab');
   }
   
   console.log(`Switched to ${tabName} tab`);

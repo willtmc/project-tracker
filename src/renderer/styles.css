@@ -764,3 +764,61 @@ textarea {
 #start-review-btn i {
   font-size: 1rem;
 }
+
+/* Phase Completion Modal */
+.phase-completion-content {
+  max-width: 600px;
+  text-align: center;
+  padding: 30px;
+  border-radius: 8px;
+  border-top: 6px solid #4CAF50;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.phase-completion-content h2 {
+  color: #4CAF50;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+#phase-completion-message {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.phase-completion-actions {
+  margin-top: 20px;
+}
+
+.phase-completion-actions button {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.phase-indicator {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  margin: 5px;
+  font-weight: bold;
+}
+
+.phase-indicator.completed {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.phase-indicator.current {
+  background-color: #2196F3;
+  color: white;
+}
+
+.phase-indicator.pending {
+  background-color: #f5f5f5;
+  color: #757575;
+}
