@@ -1,0 +1,41 @@
+{
+  "name": "electron-project-tracker",
+  "version": "1.0.0",
+  "description": "An Electron application for local project management",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "project",
+    "management",
+    "electron",
+    "tracker"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "electron": "^35.0.1",
+    "electron-builder": "^25.1.8",
+    "electron-squirrel-startup": "^1.0.1",
+    "openai": "^4.86.2",
+    "sequelize": "^6.37.6",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron-reload": "^2.0.0-alpha.1",
+    "nodemon": "^3.1.9"
+  },
+  "build": {
+    "appId": "com.willmclemore.projecttracker",
+    "productName": "Project Tracker",
+    "mac": {
+      "category": "public.app-category.productivity"
+    }
+  }
+}
