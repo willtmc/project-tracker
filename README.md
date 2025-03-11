@@ -6,6 +6,7 @@ A modern Electron-based project tracking application designed to help manage pro
 
 - **Project Status Tracking**: Monitors projects across Active, Waiting, Archived, and Someday categories
 - **Streamlined Review Workflow**: Efficiently review projects with keyboard shortcuts (y/a/s/w)
+- **Duplicate Detection**: Identify and merge potential duplicate projects using AI-powered similarity detection
 - **Modular Architecture**: Clean separation of concerns for improved maintainability
 - **Markdown Support**: View and edit project content with Markdown formatting
 - **Project Statistics**: Generate reports on project status and completion rates
@@ -28,6 +29,7 @@ The application follows a modular architecture with clear separation of concerns
 - **tabManager.js**: Handles tab functionality and switching
 - **reviewManager.js**: Manages the review process with keyboard shortcuts
 - **reportManager.js**: Generates project statistics and reports
+- **duplicateDetector.js**: Identifies and merges potential duplicate projects using AI
 - **utils.js**: Contains utility functions for common operations
 
 ## Setup
@@ -57,6 +59,21 @@ The application supports a streamlined workflow for reviewing active projects:
 2. **Archive (a)** - Archive the project and move text file to archive folder
 3. **Someday (s)** - Move to Someday folder and move text file to Someday folder
 4. **Waiting (w)** - Ask user for nature of input they're waiting on, append to file, move file to waiting folder
+
+## Using Duplicate Detection
+
+The Project Tracker includes an AI-powered duplicate detection system that helps identify and manage potential duplicate projects:
+
+1. **Finding Duplicates**: Click the "Find Duplicates" button in the header to scan your active projects for potential duplicates.
+
+2. **Reviewing Duplicates**: When potential duplicates are found, you'll be presented with a review interface showing the duplicate projects side by side.
+
+3. **Managing Duplicates**: For each group of potential duplicates, you can:
+   - **Merge Projects**: Combine the duplicate projects into a single project, preserving all unique information.
+   - **Skip**: Indicate that the projects are not duplicates and move to the next group.
+   - **Cancel**: Exit the duplicate review process.
+
+4. **Merged Projects**: After merging, the system will create a consolidated project that contains all the information from the original projects, and the duplicate projects will be archived.
 
 ## License
 
