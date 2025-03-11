@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { Project, ProjectHistory } = require('../models/database');
 const { OpenAI } = require('openai');
+const { DuplicateDetector } = require('./duplicateDetector');
 
 // Configure OpenAI
 const openai = new OpenAI({
@@ -23,6 +24,7 @@ class ProjectManager {
       archive: ARCHIVE_DIR,
       someday: SOMEDAY_DIR
     };
+    this.duplicateDetector = new DuplicateDetector();
   }
 
   /**
@@ -609,6 +611,159 @@ CONTENT:
     } catch (error) {
       console.error('Error generating report:', error);
       return { success: false, message: error.message };
+    }
+  }
+
+  /**
+   * Find potential duplicate projects within active projects
+   * @returns {Promise<Array>} Array of duplicate groups
+   */
+  async findPotentialDuplicates() {
+    console.log('Finding potential duplicate projects...');
+    
+    try {
+      // Get active projects
+      const projects = await this.getAllProjects();
+      const activeProjects = projects.active || [];
+      
+      if (activeProjects.length < 2) {
+        console.log('Not enough active projects to find duplicates');
+        return [];
+      }
+      
+      // Use the duplicate detector to find potential duplicates
+      const duplicateGroups = await this.duplicateDetector.findPotentialDuplicates(activeProjects);
+      
+      // Update database to mark projects as potential duplicates
+      for (const group of duplicateGroups) {
+        for (const project of group) {
+          await Project.update(
+            { hasPotentialDuplicates: true },
+            { where: { filename: project.filename } }
+          );
+        }
+      }
+      
+      return duplicateGroups;
+    } catch (error) {
+      console.error('Error finding potential duplicates:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Merge duplicate projects
+   * @param {Array} projectPaths Array of project file paths to merge
+   * @returns {Promise<Object>} Result of the merge operation
+   */
+  async mergeDuplicateProjects(projectPaths) {
+    console.log(`Merging duplicate projects: ${projectPaths.join(', ')}`);
+    
+    try {
+      if (!projectPaths || projectPaths.length < 2) {
+        throw new Error('At least two projects are required for merging');
+      }
+      
+      // Verify which files actually exist
+      const existingPaths = [];
+      for (const projectPath of projectPaths) {
+        try {
+          await fs.access(projectPath, fs.constants.F_OK);
+          existingPaths.push(projectPath);
+        } catch (err) {
+          console.log(`File does not exist, skipping: ${projectPath}`);
+        }
+      }
+      
+      // Check if we still have enough files to merge
+      if (existingPaths.length < 2) {
+        throw new Error(`Not enough existing files to merge. Only found ${existingPaths.length} files.`);
+      }
+      
+      console.log(`Merging ${existingPaths.length} projects...`);
+      
+      // Get project objects from paths
+      const projects = [];
+      for (const projectPath of existingPaths) {
+        const filename = path.basename(projectPath);
+        const content = await fs.readFile(projectPath, 'utf8');
+        const stats = await fs.stat(projectPath);
+        
+        // Parse project content
+        const projectData = this.parseProjectContent(content);
+        
+        projects.push({
+          filename,
+          path: projectPath,
+          title: projectData.title || this.extractProjectName(filename),
+          content,
+          lastModified: stats.mtime,
+          ...projectData
+        });
+      }
+      
+      // Merge projects using the duplicate detector
+      const mergedProject = await this.duplicateDetector.mergeProjects(projects);
+      
+      // Keep the first project's path as the target path
+      const targetPath = existingPaths[0];
+      
+      // Write the merged content to the target path
+      await fs.writeFile(targetPath, mergedProject.content, 'utf8');
+      
+      // Delete the other project files
+      for (let i = 1; i < existingPaths.length; i++) {
+        await fs.unlink(existingPaths[i]);
+        
+        // Update database to remove the deleted project
+        const filename = path.basename(existingPaths[i]);
+        await Project.destroy({ where: { filename } });
+      }
+      
+      // Update the database entry for the merged project
+      const mergedFilename = path.basename(targetPath);
+      const projectData = this.parseProjectContent(mergedProject.content);
+      const { isWellFormulated, needsImprovement } = this.validateProjectStructure(mergedProject.content, mergedFilename);
+      
+      await Project.upsert({
+        filename: mergedFilename,
+        path: targetPath,
+        status: 'active',
+        content: mergedProject.content,
+        totalTasks: this.countTotalTasks(mergedProject.content),
+        completedTasks: this.extractCompletedTasks(mergedProject.content).length,
+        isWellFormulated,
+        needsImprovement,
+        hasPotentialDuplicates: false,
+        lastModified: new Date()
+      });
+      
+      console.log('Projects merged successfully');
+      return { success: true, message: 'Projects merged successfully' };
+    } catch (error) {
+      console.error('Error merging duplicate projects:', error);
+      return { success: false, message: `Error merging projects: ${error.message}` };
+    }
+  }
+
+  /**
+   * Get all projects with potential duplicates
+   * @returns {Promise<Array>} Array of projects with potential duplicates
+   */
+  async getProjectsWithPotentialDuplicates() {
+    console.log('Getting projects with potential duplicates...');
+    
+    try {
+      // Find all duplicate groups
+      const duplicateGroups = await this.findPotentialDuplicates();
+      
+      // Flatten the groups into a single array of projects
+      const projectsWithDuplicates = duplicateGroups.flat();
+      
+      return projectsWithDuplicates;
+    } catch (error) {
+      console.error('Error getting projects with potential duplicates:', error);
+      return [];
     }
   }
 }
