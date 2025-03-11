@@ -41,7 +41,7 @@ coverage
 # nyc test coverage
 .nyc_output
 
-# Dependency directories
+# Node.js dependencies
 node_modules/
 
 # Optional npm cache directory
@@ -62,6 +62,10 @@ node_modules/
 # Database files
 *.sqlite
 *.sqlite3
+
+# Backup and archive directories
+backup-before-consolidation/
+src/renderer/archive/
 
 # OS specific files
 .DS_Store
