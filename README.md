@@ -22,6 +22,27 @@ The application includes a streamlined workflow for reviewing active projects on
 3. **Someday (s)** - Move to Someday folder and move text file to Someday folder
 4. **Waiting (w)** - Ask user for nature of input they're waiting on, append to file, move file to waiting folder
 
+## Application Architecture
+
+The application follows a modular architecture for improved maintainability and scalability:
+
+### Core Modules
+
+- **projectData.js**: Handles project data loading, saving, and status updates
+- **uiManager.js**: Manages UI elements and rendering of projects
+- **tabManager.js**: Handles tab functionality and switching
+- **reviewManager.js**: Manages the review process with keyboard shortcuts
+- **reportManager.js**: Generates project statistics and reports
+- **utils.js**: Contains utility functions for common operations
+
+### Event Handling
+
+Event handling is organized in a dedicated directory structure:
+
+- **events/index.js**: Coordinates all event handlers
+- **events/projectEvents.js**: Handles project-specific events
+- **events/keyboardShortcuts.js**: Manages keyboard shortcuts for the review workflow
+
 ## Installation
 
 ```bash
