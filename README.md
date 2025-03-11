@@ -1,62 +1,62 @@
 # WTM Project Tracker
 
-A comprehensive project tracking system designed to monitor task progress, generate reports, and track project status changes across different categories.
+A modern Electron-based project tracking application designed to help manage projects across different stages of a workflow with an efficient keyboard-driven review process.
 
 ## Features
 
 - **Project Status Tracking**: Monitors projects across Active, Waiting, Archived, and Someday categories
-- **Task Completion Tracking**: Tracks individual tasks within projects and calculates completion percentages
-- **Daily Reports**: Generates detailed daily reports with project status changes and completion statistics
-- **Email Notifications**: Sends beautifully formatted HTML emails with project updates
-- **Project Movement Detection**: Tracks when projects move between different status folders
+- **Streamlined Review Workflow**: Efficiently review projects with keyboard shortcuts (y/a/s/w)
+- **Modular Architecture**: Clean separation of concerns for improved maintainability
+- **Markdown Support**: View and edit project content with Markdown formatting
+- **Project Statistics**: Generate reports on project status and completion rates
 
 ## Project Structure
 
 The WTM Project Tracker organizes projects into four main categories:
 
-1. **Active Projects**: Current projects in the WTM Projects folder
-2. **Waiting Projects**: Projects waiting on dependencies from others in the WTM Projects Waiting folder
-3. **Archived Projects**: Completed projects in the WTM Projects Archive folder
-4. **Someday Projects**: Future ideas or non-active projects in the WTM Projects Someday folder
+1. **Active Projects**: Current projects that need attention
+2. **Waiting Projects**: Projects waiting on dependencies or input from others
+3. **Someday Projects**: Future ideas or non-active projects
+4. **Archived Projects**: Completed or inactive projects
+
+## Architecture
+
+The application follows a modular architecture with clear separation of concerns:
+
+- **projectData.js**: Handles project data loading, saving, and status updates
+- **uiManager.js**: Manages UI elements and rendering of projects
+- **tabManager.js**: Handles tab functionality and switching
+- **reviewManager.js**: Manages the review process with keyboard shortcuts
+- **reportManager.js**: Generates project statistics and reports
+- **utils.js**: Contains utility functions for common operations
 
 ## Setup
 
 1. Clone this repository
-2. Create a `config.ini` file with your email configuration:
-
-```ini
-[email]
-smtp_server = smtp.example.com
-smtp_port = 587
-smtp_username = your_email@example.com
-smtp_password = your_password
-```
-
-3. Update the `BASE_DIR` constant in `project-tracker.py` to point to your project directory
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Create a `.env` file with your configuration:
+   ```
+   PROJECTS_ROOT_DIR=/path/to/your/projects
+   DATABASE_PATH=/path/to/database.sqlite
+   ```
 
 ## Usage
 
-### Running Daily Reports
-
 ```bash
-./run-daily-report.sh
+npm start
 ```
 
-### Running Weekly Reports
+## Review Workflow
 
-```bash
-./run-weekly-report.sh
-```
+The application supports a streamlined workflow for reviewing active projects:
 
-## Email Format
-
-The system sends beautifully formatted HTML emails inspired by Gwern's website design, featuring:
-
-- Clean typography with proper spacing
-- Visual hierarchy with section cards
-- Color-coded progress indicators
-- Enhanced readability with summary boxes
-- Responsive design for various screen sizes
+1. **Yes (y)** - Keep project in active list and move to next project
+2. **Archive (a)** - Archive the project and move text file to archive folder
+3. **Someday (s)** - Move to Someday folder and move text file to Someday folder
+4. **Waiting (w)** - Ask user for nature of input they're waiting on, append to file, move file to waiting folder
 
 ## License
 
