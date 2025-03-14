@@ -126,31 +126,27 @@
   }
   
   .projects-grid.list-view {
-    @apply grid-cols-1 gap-3;
+    @apply grid-cols-1 gap-1;
   }
   
   .project-item {
     @apply card p-5 flex flex-col;
   }
   
-  .projects-grid.list-view .project-item {
-    @apply flex-row items-center gap-4 p-4;
-  }
-  
   .project-title {
     @apply text-lg font-medium mb-2 truncate;
   }
   
-  .projects-grid.list-view .project-title {
-    @apply mb-0 flex-1;
+  .project-meta {
+    @apply flex-1 flex flex-col;
+  }
+  
+  .project-status {
+    @apply text-sm mb-3 font-medium;
   }
   
   .project-last-modified {
     @apply text-sm text-secondary-500 dark:text-secondary-400 mb-3;
-  }
-  
-  .projects-grid.list-view .project-last-modified {
-    @apply mb-0 w-32 text-right;
   }
   
   .progress-container {
@@ -159,6 +155,55 @@
   
   .progress-bar {
     @apply h-full bg-primary-600 dark:bg-primary-500;
+  }
+  
+  .project-progress {
+    @apply mb-4;
+  }
+  
+  .project-progress .progress-text {
+    @apply text-xs text-secondary-600 dark:text-secondary-400 mt-1 flex justify-between;
+  }
+  
+  .project-actions {
+    @apply flex justify-between mt-4;
+  }
+  
+  /* List view specific styles */
+  .projects-grid.list-view .project-item {
+    @apply p-3 flex-row items-center gap-3;
+  }
+  
+  .projects-grid.list-view .project-title {
+    @apply mb-0 flex-1 text-base truncate;
+  }
+  
+  .projects-grid.list-view .project-meta {
+    @apply flex-row items-center gap-3;
+  }
+  
+  .projects-grid.list-view .project-status {
+    @apply mb-0 flex-shrink-0 whitespace-nowrap;
+  }
+  
+  .projects-grid.list-view .project-progress {
+    @apply mb-0 w-32 flex-shrink-0 flex flex-col;
+  }
+  
+  .projects-grid.list-view .project-progress .progress-container {
+    @apply w-full;
+  }
+  
+  .projects-grid.list-view .project-progress .progress-text {
+    @apply hidden;
+  }
+  
+  .projects-grid.list-view .project-last-modified {
+    @apply mb-0 w-32 text-right text-xs whitespace-nowrap flex-shrink-0;
+  }
+  
+  .projects-grid.list-view .project-actions {
+    @apply mt-0 flex-shrink-0 gap-2;
   }
   
   /* Theme Toggle Icons */
@@ -185,6 +230,42 @@
   
   .notification-info {
     @apply bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-100;
+  }
+  
+  /* Search container styles */
+  .search-container {
+    @apply relative flex-1 min-w-[250px];
+  }
+  
+  /* Search input styles */
+  .search-input {
+    @apply w-full py-2 px-4 pr-10 rounded-lg border border-secondary-200 dark:border-secondary-700 
+           bg-white dark:bg-secondary-800 text-secondary-900 dark:text-secondary-50
+           focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200;
+  }
+  
+  /* Search button styles */
+  .search-btn {
+    @apply absolute right-0 top-0 h-full w-10 flex items-center justify-center 
+           text-secondary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors;
+  }
+  
+  /* Search container when searching */
+  .search-container.searching .search-input {
+    @apply border-primary-400 dark:border-primary-500;
+  }
+  
+  /* Animated search indicator */
+  .search-container.searching::after {
+    content: "";
+    @apply absolute bottom-0 left-0 h-0.5 bg-primary-500 dark:bg-primary-400;
+    animation: search-progress 1s ease-in-out infinite;
+    width: 100%;
+  }
+  
+  @keyframes search-progress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 }
 

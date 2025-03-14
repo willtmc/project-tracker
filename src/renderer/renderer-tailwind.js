@@ -114,12 +114,28 @@ function setupEventListeners() {
   // Theme toggle
   themeToggle.addEventListener('click', toggleTheme);
   
-  // Search
+  // Search - update to auto-filter as you type with debounce
+  let searchDebounceTimer;
+  
+  projectSearch.addEventListener('input', () => {
+    // Clear previous timer
+    clearTimeout(searchDebounceTimer);
+    
+    // Set new timer to debounce the search (300ms delay)
+    searchDebounceTimer = setTimeout(() => {
+      console.log('Search input changed:', projectSearch.value);
+      currentFilter.search = projectSearch.value.trim().toLowerCase();
+      filterProjects();
+    }, 300);
+  });
+  
+  // Keep the click handler for the search button
   searchBtn.addEventListener('click', () => {
     currentFilter.search = projectSearch.value.trim().toLowerCase();
     filterProjects();
   });
   
+  // Keep the Enter key handler
   projectSearch.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') {
       currentFilter.search = projectSearch.value.trim().toLowerCase();
@@ -216,31 +232,39 @@ function toggleTheme() {
 
 // Initialize tabs
 function initTabs() {
-  // Get active tab from URL or default to 'active'
-  const urlParams = new URLSearchParams(window.location.search);
-  const activeTab = urlParams.get('tab') || 'active';
-  
-  switchTab(activeTab);
+  // Set initial tab from localStorage or default to 'active'
+  const savedTab = localStorage.getItem('currentTab') || 'active';
+  switchTab(savedTab);
 }
 
-// Switch between tabs
+// Switch to a specific tab
 function switchTab(tabId) {
-  console.log(`Switching to tab: ${tabId}`);
-  
-  // Update URL
-  const url = new URL(window.location);
-  url.searchParams.set('tab', tabId);
-  window.history.pushState({}, '', url);
-  
   // Update active tab button
   tabButtons.forEach(button => {
-    button.classList.toggle('active', button.dataset.tab === tabId);
+    if (button.dataset.tab === tabId) {
+      button.classList.add('active');
+    } else {
+      button.classList.remove('active');
+    }
   });
   
-  // Show active tab pane
+  // Update active tab pane
   tabPanes.forEach(pane => {
-    pane.classList.toggle('active', pane.id === `${tabId}-tab`);
+    if (pane.id === `${tabId}-tab`) {
+      pane.classList.add('active');
+    } else {
+      pane.classList.remove('active');
+    }
   });
+  
+  // Save current tab to localStorage
+  localStorage.setItem('currentTab', tabId);
+}
+
+// Get the current active tab
+function getCurrentTab() {
+  const activeTabButton = document.querySelector('.tab-btn.active');
+  return activeTabButton ? activeTabButton.dataset.tab : 'active';
 }
 
 // Load projects from storage
@@ -511,12 +535,28 @@ function filterAndSortProjectsForStatus(statusProjects) {
   
   let result = [...statusProjects];
   
-  // Apply search filter
+  // Apply search filter - enhanced to search across more fields
   if (currentFilter.search) {
-    result = result.filter(project => 
-      project.title.toLowerCase().includes(currentFilter.search) ||
-      (project.content && project.content.toLowerCase().includes(currentFilter.search))
-    );
+    const searchTerm = currentFilter.search.toLowerCase();
+    result = result.filter(project => {
+      // Check various fields for the search term
+      return (
+        // Title search
+        (project.title && project.title.toLowerCase().includes(searchTerm)) ||
+        // Content search
+        (project.content && project.content.toLowerCase().includes(searchTerm)) ||
+        // End state search
+        (project.endState && project.endState.toLowerCase().includes(searchTerm)) ||
+        // Waiting input search
+        (project.waitingInput && project.waitingInput.toLowerCase().includes(searchTerm)) ||
+        // Filename search
+        (project.filename && project.filename.toLowerCase().includes(searchTerm)) ||
+        // Task content search (if tasks are available)
+        (project.tasks && Array.isArray(project.tasks) && project.tasks.some(task => 
+          task.title && task.title.toLowerCase().includes(searchTerm)
+        ))
+      );
+    });
   }
   
   // Apply status filter
@@ -555,12 +595,28 @@ function filterAndSortProjectsForStatus(statusProjects) {
 function filterAndSortProjects() {
   let result = [...projects];
   
-  // Apply search filter
+  // Apply search filter - enhanced to search across more fields
   if (currentFilter.search) {
-    result = result.filter(project => 
-      project.title.toLowerCase().includes(currentFilter.search) ||
-      (project.content && project.content.toLowerCase().includes(currentFilter.search))
-    );
+    const searchTerm = currentFilter.search.toLowerCase();
+    result = result.filter(project => {
+      // Check various fields for the search term
+      return (
+        // Title search
+        (project.title && project.title.toLowerCase().includes(searchTerm)) ||
+        // Content search
+        (project.content && project.content.toLowerCase().includes(searchTerm)) ||
+        // End state search
+        (project.endState && project.endState.toLowerCase().includes(searchTerm)) ||
+        // Waiting input search
+        (project.waitingInput && project.waitingInput.toLowerCase().includes(searchTerm)) ||
+        // Filename search
+        (project.filename && project.filename.toLowerCase().includes(searchTerm)) ||
+        // Task content search (if tasks are available)
+        (project.tasks && Array.isArray(project.tasks) && project.tasks.some(task => 
+          task.title && task.title.toLowerCase().includes(searchTerm)
+        ))
+      );
+    });
   }
   
   // Apply status filter
@@ -604,52 +660,77 @@ function getProjectProgress(project) {
 
 // Filter projects based on current filter
 function filterProjects() {
+  // Show loading indicator if needed
+  const searchContainer = document.querySelector('.search-container');
+  if (searchContainer) {
+    searchContainer.classList.add('searching');
+    
+    // Remove the class after rendering is complete
+    setTimeout(() => {
+      searchContainer.classList.remove('searching');
+    }, 300);
+  }
+  
+  // Render the filtered projects
   renderProjects();
+  
+  // Update counters to show how many projects match the filter
+  updateCounters();
 }
 
 // Update counters
 function updateCounters() {
-  // Check if projects is an object with status keys or an array
-  if (projects && typeof projects === 'object' && !Array.isArray(projects)) {
-    // Projects is an object with status keys (from ProjectManager)
-    const activeProjects = projects.active || [];
-    const waitingProjects = projects.waiting || [];
-    const somedayProjects = projects.someday || [];
-    const archiveProjects = projects.archive || [];
+  // Get the current tab
+  const currentTabId = getCurrentTab();
+  
+  // Get all tabs
+  const tabs = ['active', 'waiting', 'someday', 'archive'];
+  
+  // Calculate total projects and filtered projects
+  let totalProjects = 0;
+  let filteredProjects = 0;
+  
+  tabs.forEach(tabId => {
+    // Get the projects for this tab
+    const tabProjects = projects[tabId] || [];
+    totalProjects += tabProjects.length;
     
-    activeCount.textContent = activeProjects.length;
-    waitingCount.textContent = waitingProjects.length;
-    somedayCount.textContent = somedayProjects.length;
-    archiveCount.textContent = archiveProjects.length;
+    // Get the filtered projects for this tab
+    const filtered = filterAndSortProjectsForStatus(tabProjects);
+    filteredProjects += filtered.length;
     
-    // Calculate completion rate
-    const totalTasks = activeProjects.reduce((sum, project) => sum + (project.tasks ? project.tasks.length : 0), 0);
-    const completedTasks = activeProjects.reduce((sum, project) => {
-      return sum + (project.tasks ? project.tasks.filter(task => task.completed).length : 0);
-    }, 0);
+    // Update the counter for this tab
+    const countElement = document.getElementById(`${tabId}-count`);
+    if (countElement) {
+      countElement.textContent = filtered.length;
+    }
+  });
+  
+  // Update search results indicator if we're filtering
+  if (currentFilter.search) {
+    // Create or get the search results indicator
+    let resultsIndicator = document.getElementById('search-results-indicator');
+    if (!resultsIndicator) {
+      resultsIndicator = document.createElement('div');
+      resultsIndicator.id = 'search-results-indicator';
+      resultsIndicator.className = 'search-results-indicator text-sm ml-2 text-secondary-600 dark:text-secondary-400';
+      
+      // Insert after the search container
+      const searchContainer = document.querySelector('.search-container');
+      if (searchContainer && searchContainer.parentNode) {
+        searchContainer.parentNode.insertBefore(resultsIndicator, searchContainer.nextSibling);
+      }
+    }
     
-    const rate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    completionRate.textContent = `${rate}%`;
+    // Update the text
+    resultsIndicator.textContent = `Found ${filteredProjects} of ${totalProjects} projects`;
+    resultsIndicator.style.display = 'block';
   } else {
-    // Projects is an array (from mock data)
-    const activeProjects = projects.filter(p => p.status === 'active');
-    const waitingProjects = projects.filter(p => p.status === 'waiting');
-    const somedayProjects = projects.filter(p => p.status === 'someday');
-    const archiveProjects = projects.filter(p => p.status === 'archive');
-    
-    activeCount.textContent = activeProjects.length;
-    waitingCount.textContent = waitingProjects.length;
-    somedayCount.textContent = somedayProjects.length;
-    archiveCount.textContent = archiveProjects.length;
-    
-    // Calculate completion rate
-    const totalTasks = activeProjects.reduce((sum, project) => sum + (project.tasks ? project.tasks.length : 0), 0);
-    const completedTasks = activeProjects.reduce((sum, project) => {
-      return sum + (project.tasks ? project.tasks.filter(task => task.completed).length : 0);
-    }, 0);
-    
-    const rate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    completionRate.textContent = `${rate}%`;
+    // Hide the indicator if we're not searching
+    const resultsIndicator = document.getElementById('search-results-indicator');
+    if (resultsIndicator) {
+      resultsIndicator.style.display = 'none';
+    }
   }
 }
 

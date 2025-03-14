@@ -1,4 +1,26 @@
 /**
+ * Project Tracker - Project Item Template
+ * 
+ * This file contains functions for creating project item elements in the UI.
+ * The main function createProjectItem generates a project card that adapts to both
+ * grid and list views based on the user's selected view mode.
+ * 
+ * Recent changes:
+ * - Optimized layout for list view to be more compact and horizontally oriented
+ * - Added green "Well formulated" status with icon
+ * - Improved button styling and positioning
+ * - Ensured consistent spacing and alignment in both grid and list views
+ * 
+ * TODO for next session:
+ * - Test all button functionality:
+ *   - Open button should open the project modal
+ *   - Move to Waiting button should move active projects to waiting tab
+ *   - Restore button should restore archived projects
+ * - Verify that the entire card is clickable and opens the project modal
+ * - Check that the status indicator (Well formulated/Needs improvement) displays correctly
+ */
+
+/**
  * Creates a project item HTML element with Tailwind CSS classes
  * @param {Object} project - The project data
  * @param {string} tabId - The ID of the tab this project belongs to
@@ -58,84 +80,88 @@ function createProjectItem(project, tabId) {
   const isWellFormulated = project.isWellFormulated || 
                           (project.endState && project.endState.trim() !== '');
   
-  // Create the project item content
+  // Create the project item content - single version that adapts to both grid and list views
   projectItem.innerHTML = `
-    <div class="flex flex-col h-full">
-      <div class="flex-1">
-        <h3 class="project-title">${project.title || 'Untitled Project'}</h3>
-        <div class="project-last-modified">Last modified: ${formattedDate}</div>
-        
-        <div class="project-end-state mb-3">
-          ${isWellFormulated 
-            ? `<div class="text-sm text-success-600 dark:text-success-400 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                Well formulated
-              </div>`
-            : `<div class="text-sm text-error-600 dark:text-error-400 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-                Needs improvement
-              </div>`
-          }
+    <h3 class="project-title">${project.title || 'Untitled Project'}</h3>
+    
+    <div class="project-meta">
+      ${isWellFormulated 
+        ? `<div class="project-status text-success-600 dark:text-success-400 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            Well formulated
+          </div>`
+        : `<div class="project-status text-error-600 dark:text-error-400 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Needs improvement
+          </div>`
+      }
+      
+      <div class="project-progress">
+        <div class="progress-container">
+          <div class="progress-bar" style="width: ${progressPercentage}%"></div>
         </div>
-        
-        <div class="project-progress mb-4">
-          <div class="flex justify-between text-xs mb-1">
-            <span>${progressPercentage}% Complete</span>
-            <span>${project.completedTasks || 0}/${project.totalTasks || 0} Tasks</span>
-          </div>
-          <div class="bg-secondary-200 dark:bg-secondary-700 rounded-full h-2 overflow-hidden">
-            <div class="bg-primary-500 h-full rounded-full" style="width: ${progressPercentage}%"></div>
-          </div>
+        <div class="progress-text">
+          <span>${progressPercentage}% Complete</span>
+          <span>${project.completedTasks || 0}/${project.totalTasks || 0} Tasks</span>
         </div>
       </div>
       
-      <div class="project-actions flex justify-between mt-4">
-        <button class="btn btn-sm btn-secondary open-project" data-id="${project.id || project.filename || ''}">
-          Open
-        </button>
-        
-        ${tabId === 'archive' 
-          ? `<button class="btn btn-sm btn-primary restore-project" data-id="${project.id || project.filename || ''}">
-              Restore
-            </button>`
-          : `<button class="btn btn-sm btn-primary move-to-waiting" data-id="${project.id || project.filename || ''}">
-              Move to Waiting
-            </button>`
-        }
+      <div class="project-last-modified">
+        Last modified: ${formattedDate}
       </div>
+    </div>
+    
+    <div class="project-actions">
+      <button class="btn btn-sm btn-secondary open-project" data-id="${project.id || project.filename || ''}">
+        Open
+      </button>
+      
+      ${tabId === 'archive' 
+        ? `<button class="btn btn-sm btn-primary restore-project" data-id="${project.id || project.filename || ''}">
+            Restore
+          </button>`
+        : `<button class="btn btn-sm btn-primary move-to-waiting" data-id="${project.id || project.filename || ''}">
+            Move to Waiting
+          </button>`
+      }
     </div>
   `;
   
-  // Add event listeners
-  const openBtn = projectItem.querySelector('.open-project');
-  if (openBtn) {
-    openBtn.addEventListener('click', (e) => {
+  // Add event listeners for button actions
+  // These need to be tested in the next session
+  
+  // 1. Open button - should open the project modal
+  const openBtns = projectItem.querySelectorAll('.open-project');
+  openBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       openProjectModal(project);
     });
-  }
+  });
   
-  const moveToWaitingBtn = projectItem.querySelector('.move-to-waiting');
-  if (moveToWaitingBtn) {
-    moveToWaitingBtn.addEventListener('click', (e) => {
+  // 2. Move to Waiting button - should move active projects to waiting tab
+  const moveToWaitingBtns = projectItem.querySelectorAll('.move-to-waiting');
+  moveToWaitingBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       moveToWaiting(project.id || project.filename);
     });
-  }
+  });
   
-  const restoreBtn = projectItem.querySelector('.restore-project');
-  if (restoreBtn) {
-    restoreBtn.addEventListener('click', (e) => {
+  // 3. Restore button - should restore archived projects
+  const restoreBtns = projectItem.querySelectorAll('.restore-project');
+  restoreBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       restoreProject(project.id || project.filename);
     });
-  }
+  });
   
-  // Make the entire card clickable
+  // 4. Make the entire card clickable - should open the project modal
   projectItem.addEventListener('click', () => {
     openProjectModal(project);
   });
