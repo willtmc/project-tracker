@@ -37,6 +37,10 @@ This document tracks current issues, planned features, and development tasks for
   * Replaced tiny icons with proper buttons for better usability
   * Consistent spacing and alignment in both grid and list views
   * Eliminated duplicate content that was previously showing in both views
+- Enhanced duplicate detection with GPT-4o (March 14, 2025)
+  * Improved accuracy in identifying potential duplicate projects
+  * Better handling of similar project titles with different wording
+  * Optimized similarity threshold for more reliable results
 
 ## Planned Features
 
@@ -55,7 +59,19 @@ This document tracks current issues, planned features, and development tasks for
 
 ## Current Development Focus
 
-### Testing Plan for List View (Next Session)
+### Duplicate Detector UI (Immediate Priority)
+
+The duplicate detection functionality is working correctly in the backend, but there is currently no user interface for interacting with the detected duplicates:
+
+1. **Create Duplicate Management UI**: Develop a dedicated interface that displays detected duplicate groups
+2. **Implement User Actions**: Add buttons/controls to allow users to:
+   * View details of each potential duplicate
+   * Select which duplicates to keep or merge
+   * Dismiss false positives
+3. **Improve Feedback**: Provide clear visual feedback when duplicates are detected and resolved
+4. **Persistence**: Ensure user decisions about duplicates are saved and respected in future detection runs
+
+### Testing Plan for List View
 
 We need to thoroughly test all button functionality:
 
@@ -71,6 +87,7 @@ We need to thoroughly test all button functionality:
 1. Enhance the review workflow UI
 2. Add automated tests for database operations
 3. Implement search functionality across all projects
+4. Improve duplicate detection UI and workflow (see Future Improvements)
 
 ## Future Improvements
 
@@ -80,6 +97,14 @@ Potential enhancements to consider:
 2. Implement drag-and-drop for reordering projects
 3. Add more filtering options for the list view
 4. Consider adding a compact view option that shows even more projects at once
+5. Duplicate detection enhancements:
+   * Create a dedicated UI for viewing duplicate groups when the duplicate button is clicked
+   * Ensure project content is visible when a user clicks on a project card in duplicate view
+   * Implement a "merge mode" that allows users to select projects to merge by:
+     - Filtering with search functionality
+     - Selecting multiple projects from the same duplicate group
+     - Previewing merged content before confirming
+   * Add user review and input capabilities for the duplicate detection process
 
 ## Application Structure
 
@@ -90,4 +115,4 @@ The application follows an Electron-based architecture with:
 
 ---
 
-*Last updated: March 15, 2025*
+*Last updated: March 14, 2025*
