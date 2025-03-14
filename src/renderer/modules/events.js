@@ -85,16 +85,6 @@ function setupProjectEventListeners() {
     });
   }
   
-  // Get report button
-  const reportBtn = document.getElementById('report-btn');
-  if (reportBtn) {
-    reportBtn.addEventListener('click', () => {
-      console.log('Report button clicked');
-      tabManager.switchTab('report');
-      reportManager.generateReport();
-    });
-  }
-  
   console.log('Project event listeners set up');
 }
 
@@ -116,23 +106,52 @@ function setupDuplicateDetectionEventListeners() {
 function setupWorkflowEventListeners() {
   console.log('Setting up workflow event listeners');
   
-  // Get the Start Work button
-  const startWorkBtn = document.getElementById('start-work-btn');
-  if (startWorkBtn) {
-    startWorkBtn.addEventListener('click', () => {
-      console.log('Start Work button clicked');
-      
-      // Check if a workflow is already in progress
-      if (workflowManager.isWorkflowInProgress()) {
-        uiManager.showNotification('A workflow is already in progress', 'warning');
-        return;
-      }
-      
-      // Start the workflow
-      workflowManager.startWorkflow();
+  // Get the Remove Duplicates button
+  const removeDuplicatesBtn = document.getElementById('remove-duplicates-btn');
+  if (removeDuplicatesBtn) {
+    removeDuplicatesBtn.addEventListener('click', () => {
+      console.log('Remove Duplicates button clicked');
+      tabManager.switchTab('duplicate-detection');
+      duplicateDetector.startDuplicateDetection();
     });
   } else {
-    console.error('Start Work button not found');
+    console.error('Remove Duplicates button not found');
+  }
+  
+  // Get the Sort Projects button
+  const sortProjectsBtn = document.getElementById('sort-projects-btn');
+  if (sortProjectsBtn) {
+    sortProjectsBtn.addEventListener('click', () => {
+      console.log('Sort Projects button clicked');
+      tabManager.switchTab('review');
+      reviewManager.startProjectReview();
+    });
+  } else {
+    console.error('Sort Projects button not found');
+  }
+  
+  // Get the Formulate Projects button
+  const formulateProjectsBtn = document.getElementById('formulate-projects-btn');
+  if (formulateProjectsBtn) {
+    formulateProjectsBtn.addEventListener('click', () => {
+      console.log('Formulate Projects button clicked');
+      tabManager.switchTab('well-formulation');
+      workflowManager.getWellFormulationManager().startWellFormulationCheck();
+    });
+  } else {
+    console.error('Formulate Projects button not found');
+  }
+  
+  // Get the View Report button
+  const viewReportBtn = document.getElementById('view-report-btn');
+  if (viewReportBtn) {
+    viewReportBtn.addEventListener('click', () => {
+      console.log('View Report button clicked');
+      tabManager.switchTab('report');
+      reportManager.generateReport();
+    });
+  } else {
+    console.error('View Report button not found');
   }
   
   console.log('Workflow event listeners set up');

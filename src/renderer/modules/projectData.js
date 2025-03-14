@@ -246,6 +246,31 @@ async function getProjectsWithDuplicates() {
   }
 }
 
+/**
+ * Update a project with new data
+ * @param {Object} project The project data to update
+ * @returns {Promise<boolean>} True if successful, false otherwise
+ */
+async function updateProject(project) {
+  console.log(`Updating project: ${project.title}`);
+  
+  try {
+    // Update project through main process
+    const result = await ipcRenderer.invoke('update-project', project);
+    
+    if (result && result.success) {
+      console.log('Project updated successfully');
+      return true;
+    } else {
+      console.error('Failed to update project:', result ? result.message : 'Unknown error');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error updating project:', error);
+    return false;
+  }
+}
+
 module.exports = {
   loadProjects,
   getProjectsData,
@@ -255,5 +280,6 @@ module.exports = {
   saveProjectChanges,
   findPotentialDuplicates,
   mergeDuplicateProjects,
-  getProjectsWithDuplicates
+  getProjectsWithDuplicates,
+  updateProject
 };

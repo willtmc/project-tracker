@@ -6,6 +6,9 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+// Import database error handlers
+const databaseErrorHandlers = require('./ipc/databaseErrorHandlers');
+
 // Conditionally import database setup
 let setupDatabase, Project, ProjectHistory;
 try {
@@ -41,7 +44,19 @@ let mainWindow;
 
 // Initialize the database
 try {
-  setupDatabase();
+  setupDatabase().catch(error => {
+    console.error('Error during database setup:', error);
+    
+    // Send database error notification to renderer when window is ready
+    if (mainWindow) {
+      databaseErrorHandlers.sendDatabaseErrorNotification(mainWindow, {
+        title: 'Database Initialization Error',
+        message: `Failed to initialize database: ${error.message}`,
+        canRetry: true,
+        canRestore: true
+      });
+    }
+  });
 } catch (e) {
   console.error('Error setting up database:', e);
 }
@@ -75,6 +90,9 @@ function createWindow() {
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`[Renderer Console] ${message}`);
   });
+  
+  // Initialize database error handlers
+  databaseErrorHandlers.initializeDatabaseErrorHandlers(mainWindow);
 }
 
 app.whenReady().then(() => {

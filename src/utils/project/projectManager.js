@@ -183,25 +183,30 @@ class ProjectManager {
       const project = await Project.findOne({ where: { path: projectPath } });
       
       if (project) {
+        // Determine the new status based on the parameters
+        const newStatus = isActive 
+          ? (isWaiting ? 'waiting' : 'active') 
+          : (targetStatus || 'archive');
+        
         // Create a history record before updating
         await ProjectHistory.create({
-          projectId: project.id,
+          filename: filename,
           previousStatus: project.status,
-          newStatus: targetStatus,
+          newStatus: newStatus,
           timestamp: new Date()
         });
         
         // Update the project
         await project.update({
           path: newPath,
-          status: targetStatus,
+          status: newStatus,
           lastModified: new Date()
         });
       }
       
       return {
         success: true,
-        message: `Project moved to ${targetStatus} status`,
+        message: `Project moved to ${targetStatus || (isWaiting ? 'waiting' : 'active')} status`,
         newPath
       };
     } catch (error) {
@@ -242,9 +247,9 @@ class ProjectManager {
 
   /**
    * Reformulate a project with AI assistance
-   * @param {string} projectPath - Project file path
+   * @param {string} projectPath - Path to the project file
    * @param {string} endState - New end state
-   * @returns {Promise<Object>} - Result object
+   * @returns {Promise<Object>} - Result of the reformulation
    */
   async reformulateProject(projectPath, endState) {
     try {
@@ -281,13 +286,15 @@ class ProjectManager {
       return {
         success: true,
         message: 'Project reformulated successfully',
-        content: reformulatedContent
+        newFilename: filename,
+        reformulatedContent: reformulatedContent,
+        isWellFormulated: true
       };
     } catch (error) {
       console.error('Error reformulating project:', error);
       return {
         success: false,
-        message: `Error reformulating project: ${error.message}`
+        message: 'Error reformulating project: ' + error.message
       };
     }
   }

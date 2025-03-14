@@ -1,0 +1,206 @@
+@import 'inter-ui/inter.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary-50: 239 246 255;
+  --color-primary-100: 219 234 254;
+  --color-primary-200: 191 219 254;
+  --color-primary-300: 147 197 253;
+  --color-primary-400: 96 165 250;
+  --color-primary-500: 59 130 246;
+  --color-primary-600: 37 99 235;
+  --color-primary-700: 29 78 216;
+  --color-primary-800: 30 64 175;
+  --color-primary-900: 30 58 138;
+  --color-primary-950: 23 37 84;
+  
+  --color-secondary-50: 248 250 252;
+  --color-secondary-100: 241 245 249;
+  --color-secondary-200: 226 232 240;
+  --color-secondary-300: 203 213 225;
+  --color-secondary-400: 148 163 184;
+  --color-secondary-500: 100 116 139;
+  --color-secondary-600: 71 85 105;
+  --color-secondary-700: 51 65 85;
+  --color-secondary-800: 30 41 59;
+  --color-secondary-900: 15 23 42;
+  --color-secondary-950: 8 15 32;
+  
+  --color-success-50: 240 253 244;
+  --color-success-100: 220 252 231;
+  --color-success-200: 187 247 208;
+  --color-success-300: 134 239 172;
+  --color-success-400: 74 222 128;
+  --color-success-500: 34 197 94;
+  --color-success-600: 22 163 74;
+  --color-success-700: 21 128 61;
+  --color-success-800: 22 101 52;
+  --color-success-900: 20 83 45;
+  --color-success-950: 5 46 22;
+  
+  --color-error-50: 254 242 242;
+  --color-error-100: 254 226 226;
+  --color-error-200: 254 202 202;
+  --color-error-300: 252 165 165;
+  --color-error-400: 248 113 113;
+  --color-error-500: 239 68 68;
+  --color-error-600: 220 38 38;
+  --color-error-700: 185 28 28;
+  --color-error-800: 153 27 27;
+  --color-error-900: 127 29 29;
+  --color-error-950: 69 10 10;
+}
+
+@layer components {
+  /* Button Styles */
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 dark:bg-primary-500 dark:hover:bg-primary-600;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-200 text-secondary-800 hover:bg-secondary-300 focus:ring-secondary-300 dark:bg-secondary-700 dark:text-secondary-100 dark:hover:bg-secondary-600;
+  }
+  
+  .btn-error {
+    @apply bg-error-600 text-white hover:bg-error-700 focus:ring-error-500;
+  }
+  
+  .btn-success {
+    @apply bg-success-600 text-white hover:bg-success-700 focus:ring-success-500;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-lg;
+  }
+  
+  /* Input Styles */
+  .input {
+    @apply w-full px-3 py-2 border border-secondary-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-secondary-800 dark:border-secondary-700 dark:text-secondary-100 dark:placeholder-secondary-400;
+  }
+  
+  /* Card Styles */
+  .card {
+    @apply bg-white dark:bg-secondary-800 rounded-lg shadow-sm border border-secondary-200 dark:border-secondary-700;
+  }
+  
+  /* Tab Styles */
+  .tab-btn {
+    @apply px-4 py-3 font-medium text-secondary-600 hover:text-primary-600 hover:bg-secondary-50 dark:text-secondary-300 dark:hover:text-primary-400 dark:hover:bg-secondary-700;
+  }
+  
+  .tab-btn.active {
+    @apply text-primary-600 border-b-2 border-primary-600 dark:text-primary-400 dark:border-primary-400;
+  }
+  
+  .tab-pane {
+    @apply hidden;
+  }
+  
+  .tab-pane.active {
+    @apply block;
+  }
+  
+  /* View Toggle Buttons */
+  .view-btn {
+    @apply p-2 text-secondary-500 hover:text-primary-600 dark:text-secondary-400 dark:hover:text-primary-400 transition-colors;
+  }
+  
+  .view-btn.active {
+    @apply bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400;
+  }
+  
+  /* Project Grid Styles */
+  .projects-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5;
+  }
+  
+  .projects-grid.list-view {
+    @apply grid-cols-1 gap-3;
+  }
+  
+  .project-item {
+    @apply card p-5 flex flex-col;
+  }
+  
+  .projects-grid.list-view .project-item {
+    @apply flex-row items-center gap-4 p-4;
+  }
+  
+  .project-title {
+    @apply text-lg font-medium mb-2 truncate;
+  }
+  
+  .projects-grid.list-view .project-title {
+    @apply mb-0 flex-1;
+  }
+  
+  .project-last-modified {
+    @apply text-sm text-secondary-500 dark:text-secondary-400 mb-3;
+  }
+  
+  .projects-grid.list-view .project-last-modified {
+    @apply mb-0 w-32 text-right;
+  }
+  
+  .progress-container {
+    @apply h-2 bg-secondary-200 dark:bg-secondary-700 rounded-full overflow-hidden;
+  }
+  
+  .progress-bar {
+    @apply h-full bg-primary-600 dark:bg-primary-500;
+  }
+  
+  /* Theme Toggle Icons */
+  .theme-icon-light {
+    @apply block dark:hidden;
+  }
+  
+  .theme-icon-dark {
+    @apply hidden dark:block;
+  }
+  
+  /* Notification Styles */
+  .notification {
+    @apply p-4 rounded-lg shadow-lg mb-3 flex items-start gap-3 max-w-sm;
+  }
+  
+  .notification-success {
+    @apply bg-success-100 text-success-800 dark:bg-success-900/50 dark:text-success-100;
+  }
+  
+  .notification-error {
+    @apply bg-error-100 text-error-800 dark:bg-error-900/50 dark:text-error-100;
+  }
+  
+  .notification-info {
+    @apply bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-100;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary-100 dark:bg-secondary-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-secondary-300 dark:bg-secondary-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-secondary-400 dark:bg-secondary-500;
+} 

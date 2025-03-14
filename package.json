@@ -7,7 +7,11 @@
     "start": "electron .",
     "dev": "NODE_ENV=development electron .",
     "build": "electron-builder",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "generate-icons": "node build/create-icons.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "tailwindcss -i ./src/renderer/tailwind.css -o ./src/renderer/styles.css --watch",
+    "dev:tailwind": "concurrently \"npm run build:css\" \"npm run dev\"",
+    "start:tailwind": "concurrently \"npm run build:css\" \"npm run start\""
   },
   "keywords": [
     "project",
@@ -18,25 +22,51 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@heroicons/react": "^2.0.18",
     "dotenv": "^16.4.7",
     "electron": "^35.0.1",
     "electron-builder": "^25.1.8",
     "electron-squirrel-startup": "^1.0.1",
+    "inter-ui": "^3.19.3",
     "marked": "^15.0.7",
     "openai": "^4.86.2",
     "sequelize": "^6.37.6",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.21",
     "concurrently": "^9.1.2",
     "electron-reload": "^2.0.0-alpha.1",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "postcss": "^8.5.3",
+    "sharp": "^0.33.5",
+    "tailwindcss": "^3.4.17"
   },
   "build": {
     "appId": "com.willmclemore.projecttracker",
     "productName": "Project Tracker",
     "mac": {
-      "category": "public.app-category.productivity"
-    }
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "darkModeSupport": true
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ]
   }
 }
