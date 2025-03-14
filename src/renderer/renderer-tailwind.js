@@ -97,50 +97,27 @@ function setupEventListeners() {
   // Tab navigation
   tabButtons.forEach(button => {
     button.addEventListener('click', () => {
-      const tabId = button.dataset.tab;
+      const tabId = button.getAttribute('data-tab');
       switchTab(tabId);
     });
   });
   
   // View toggle
-  gridViewBtn.addEventListener('click', () => {
-    setView('grid');
-  });
-  
-  listViewBtn.addEventListener('click', () => {
-    setView('list');
-  });
+  gridViewBtn.addEventListener('click', () => setView('grid'));
+  listViewBtn.addEventListener('click', () => setView('list'));
   
   // Theme toggle
   themeToggle.addEventListener('click', toggleTheme);
   
-  // Search - update to auto-filter as you type with debounce
-  let searchDebounceTimer;
-  
-  projectSearch.addEventListener('input', () => {
-    // Clear previous timer
-    clearTimeout(searchDebounceTimer);
-    
-    // Set new timer to debounce the search (300ms delay)
-    searchDebounceTimer = setTimeout(() => {
-      console.log('Search input changed:', projectSearch.value);
-      currentFilter.search = projectSearch.value.trim().toLowerCase();
-      filterProjects();
-    }, 300);
-  });
-  
-  // Keep the click handler for the search button
+  // Search
   searchBtn.addEventListener('click', () => {
-    currentFilter.search = projectSearch.value.trim().toLowerCase();
+    currentFilter.search = projectSearch.value;
     filterProjects();
   });
   
-  // Keep the Enter key handler
-  projectSearch.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
-      currentFilter.search = projectSearch.value.trim().toLowerCase();
-      filterProjects();
-    }
+  projectSearch.addEventListener('input', () => {
+    currentFilter.search = projectSearch.value;
+    filterProjects();
   });
   
   // Filters
@@ -154,8 +131,71 @@ function setupEventListeners() {
     filterProjects();
   });
   
-  // Buttons
-  refreshBtn.addEventListener('click', loadProjects);
+  // Refresh button
+  refreshBtn.addEventListener('click', async () => {
+    try {
+      // Disable button and show loading state
+      refreshBtn.disabled = true;
+      const originalButtonContent = refreshBtn.innerHTML;
+      refreshBtn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Synchronizing...
+      `;
+      
+      // Call synchronization API
+      const result = await window.api.synchronizeProjects();
+      
+      // Show notification
+      const notification = document.getElementById('sync-notification');
+      const message = document.getElementById('sync-message');
+      
+      if (result.success) {
+        notification.classList.remove('bg-red-500');
+        notification.classList.add('bg-green-500');
+        message.textContent = `Projects synchronized successfully. ${result.syncStatus.databaseProjects} database projects, ${result.syncStatus.filesystemProjects} filesystem projects.`;
+      } else {
+        notification.classList.remove('bg-green-500');
+        notification.classList.add('bg-red-500');
+        message.textContent = result.message || 'Error synchronizing projects';
+      }
+      
+      // Show notification
+      notification.classList.remove('hidden');
+      
+      // Hide notification after 5 seconds
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 5000);
+      
+      // Load projects after synchronization
+      await loadProjects();
+    } catch (error) {
+      console.error('Error synchronizing projects:', error);
+      
+      // Show error notification
+      const notification = document.getElementById('sync-notification');
+      const message = document.getElementById('sync-message');
+      
+      notification.classList.remove('bg-green-500');
+      notification.classList.add('bg-red-500');
+      message.textContent = `Error: ${error.message || 'Unknown error'}`;
+      
+      notification.classList.remove('hidden');
+      
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 5000);
+    } finally {
+      // Reset button
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = `Refresh Projects`;
+    }
+  });
+  
+  // Other buttons
   removeDuplicatesBtn.addEventListener('click', removeDuplicates);
   sortProjectsBtn.addEventListener('click', sortProjects);
   formulateProjectsBtn.addEventListener('click', formulateProjects);

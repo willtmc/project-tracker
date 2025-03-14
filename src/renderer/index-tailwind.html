@@ -47,7 +47,7 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
-        <button id="refresh-btn" class="btn btn-secondary">Refresh Projects</button>
+        <button id="refresh-btn" class="btn btn-primary">Refresh Projects</button>
         <button id="remove-duplicates-btn" class="btn btn-primary">Remove Duplicates</button>
         <button id="sort-projects-btn" class="btn btn-primary">Sort Projects</button>
         <button id="formulate-projects-btn" class="btn btn-primary">Formulate Projects</button>
@@ -319,5 +319,46 @@
   
   <!-- Debug script (load last) -->
   <script src="debug.js"></script>
+
+  <!-- Add this notification element -->
+  <div id="sync-notification" class="hidden fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded shadow-lg">
+    <div class="flex items-center">
+      <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <span id="sync-message">Projects synchronized successfully</span>
+    </div>
+  </div>
+
+  <!-- Remove the sync button script and keep only the onSyncCompleted listener -->
+  <script>
+    // Listen for sync completed event
+    window.api.onSyncCompleted((result) => {
+      console.log('Sync completed:', result);
+      
+      // Show notification if sync was performed during startup
+      if (result && result.syncStatus) {
+        const notification = document.getElementById('sync-notification');
+        const message = document.getElementById('sync-message');
+        
+        if (result.success) {
+          notification.classList.remove('bg-red-500');
+          notification.classList.add('bg-green-500');
+          
+          if (!result.syncStatus.inSync) {
+            message.textContent = `Projects synchronized. Database: ${result.syncStatus.databaseProjects}, Filesystem: ${result.syncStatus.filesystemProjects}`;
+            
+            // Show notification
+            notification.classList.remove('hidden');
+            
+            // Hide notification after 5 seconds
+            setTimeout(() => {
+              notification.classList.add('hidden');
+            }, 5000);
+          }
+        }
+      }
+    });
+  </script>
 </body>
 </html> 
