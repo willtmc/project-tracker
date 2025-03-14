@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 class DuplicateDetector {
   constructor() {
-    this.similarityThreshold = 0.75; // Default threshold for considering projects as potential duplicates
+    this.similarityThreshold = 0.55; // Further lowered threshold for considering projects as potential duplicates
   }
 
   /**
@@ -25,19 +25,31 @@ class DuplicateDetector {
     }
 
     try {
+      console.log('Finding potential duplicates among', activeProjects.length, 'projects');
+      
       // Extract all project titles
       const projectTitles = activeProjects.map(project => project.title || 'Untitled');
-      console.log(`Extracted ${projectTitles.length} project titles`);
+      console.log('Project titles:', projectTitles);
       
       // Use OpenAI to identify groups of similar titles
+      console.log('Calling OpenAI API with model: gpt-4o');
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo-16k", // Using larger context model for all titles
+        model: "chatgpt-4o-latest", // Using GPT-4o for improved duplicate detection
         messages: [
           {
             role: "system",
-            content: "You are a specialized assistant that identifies groups of related project titles. " +
-                     "Your task is to analyze a list of project titles and identify groups of titles that appear to be related to the same topic or initiative. " +
-                     "Pay special attention to titles that contain similar keywords (like 'avionics', 'airport', etc.) " +
+            content: "You are a specialized assistant that identifies groups of potentially duplicate or related project titles. " +
+                     "Your task is to analyze a list of project titles and identify groups that might be related to the same initiative, goal, or outcome. " +
+                     "Be VERY liberal in your grouping - it's much better to flag potential duplicates that aren't actually duplicates than to miss actual duplicates. " +
+                     "Pay special attention to projects from the same organization or domain (like 'Forge Flightworks', 'Avionics', etc.). " +
+                     "Consider the following as signs of potential duplication:\n" +
+                     "1. Similar keywords or themes (e.g., 'website redesign' and 'update website')\n" +
+                     "2. Same domain, organization, or area (e.g., 'Forge Flightworks dashboard' and 'FF dashboard update')\n" +
+                     "3. Similar goals or outcomes (e.g., 'increase sales' and 'boost revenue')\n" +
+                     "4. Projects that could be merged into a single larger project\n" +
+                     "5. Projects where one might be a subtask of another\n" +
+                     "6. Projects with similar prefixes or naming patterns\n" +
+                     "7. Projects that mention the same product, service, or component\n\n" +
                      "Output ONLY a JSON array where each element is an array of indices representing a group of related titles. " +
                      "For example: [[0, 5, 9], [2, 7], [3, 11, 12]] means titles at indices 0, 5, and 9 are related; " +
                      "titles at indices 2 and 7 are related; and titles at indices 3, 11, and 12 are related. " +
@@ -50,46 +62,56 @@ class DuplicateDetector {
             content: `Please identify groups of related project titles from the following list:\n\n${projectTitles.map((title, index) => `${index}: ${title}`).join('\n')}`
           }
         ],
-        temperature: 0.1, // Low temperature for more deterministic results
-        max_tokens: 2000
+        
       });
+      
+      console.log('Received response from OpenAI API');
       
       // Parse the response to get groups of related titles
       let duplicateGroups = [];
       try {
-        const content = response.choices[0].message.content.trim();
-        console.log('AI response:', content);
+        console.log('Parsing OpenAI response:', response.choices[0].message.content);
         
-        // Extract JSON array from the response (handling potential text before/after the JSON)
-        const jsonMatch = content.match(/\[\[.*\]\]/s);
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[0];
-          const groupIndices = JSON.parse(jsonStr);
-          
-          // Convert indices to actual project objects
-          duplicateGroups = groupIndices.map(group => 
-            group.map(index => activeProjects[index])
-          );
-        } else {
-          // Try parsing the entire response as JSON
-          duplicateGroups = JSON.parse(content).map(group => 
-            group.map(index => activeProjects[index])
-          );
+        // Clean the response by removing markdown code block formatting if present
+        let contentToParse = response.choices[0].message.content;
+        
+        // Remove markdown code block formatting if present
+        if (contentToParse.includes('```json')) {
+          contentToParse = contentToParse.replace(/```json/g, '').replace(/```/g, '');
+        } else if (contentToParse.includes('```')) {
+          contentToParse = contentToParse.replace(/```/g, '');
         }
         
-        // Filter out any groups with only one project (this should not happen, but just in case)
-        duplicateGroups = duplicateGroups.filter(group => group.length >= 2);
+        // Trim any whitespace
+        contentToParse = contentToParse.trim();
         
-        console.log(`Found ${duplicateGroups.length} potential duplicate groups`);
-        duplicateGroups.forEach((group, i) => {
-          console.log(`Group ${i + 1}:`);
-          group.forEach(project => console.log(`- ${project.title}`));
-        });
-      } catch (parseError) {
-        console.error('Error parsing AI response:', parseError);
-        console.log('Raw response:', response.choices[0].message.content);
-        return [];
+        console.log('Cleaned content for parsing:', contentToParse);
+        const parsedGroups = JSON.parse(contentToParse);
+        console.log('Successfully parsed JSON response:', parsedGroups);
+        
+        // Convert indices to actual projects
+        if (Array.isArray(parsedGroups)) {
+          duplicateGroups = parsedGroups.map(group => {
+            return group.map(index => activeProjects[index]);
+          });
+          console.log(`Created ${duplicateGroups.length} duplicate groups with projects:`);
+          duplicateGroups.forEach((group, i) => {
+            console.log(`Group ${i+1}:`, group.map(p => p.title));
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing duplicate groups:', error);
+        console.error('Raw response content:', response.choices[0].message.content);
       }
+      
+      // Filter out any groups with only one project (this should not happen, but just in case)
+      duplicateGroups = duplicateGroups.filter(group => group.length >= 2);
+      
+      console.log(`Found ${duplicateGroups.length} potential duplicate groups`);
+      duplicateGroups.forEach((group, i) => {
+        console.log(`Group ${i + 1}:`);
+        group.forEach(project => console.log(`- ${project.title}`));
+      });
       
       return duplicateGroups;
     } catch (error) {
@@ -112,7 +134,7 @@ class DuplicateDetector {
       
       // Use OpenAI to determine similarity based on titles only
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o", // Using GPT-4o for improved merging
         messages: [
           {
             role: "system",
@@ -318,7 +340,7 @@ class DuplicateDetector {
       
       // Use OpenAI to merge content
       const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo-16k", // Using larger context model
+        model: "gpt-4o", // Using GPT-4o for improved merging
         messages: [
           {
             role: "system",

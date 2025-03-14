@@ -10,26 +10,51 @@ function isProjectWellFormulated(project) {
     return false;
   }
   
-  const content = project.content.toLowerCase();
+  const content = project.content;
   
-  // Check for outcome-based language
-  const hasOutcome = content.includes('outcome:') || 
-                    content.includes('goal:') || 
-                    content.includes('result:') || 
-                    content.includes('objective:');
+  // Check for required sections
+  const hasEndState = content.includes('## End State') || content.includes('# End State');
+  const hasTasks = content.includes('## Tasks') || content.includes('# Tasks');
   
-  // Check for next action
-  const hasNextAction = content.includes('next action:') || 
-                       content.includes('next step:') || 
-                       content.includes('next:');
+  // Check if the title starts with an action verb
+  const titleHasAction = checkTitleHasAction(project.title);
   
-  // Check for context
-  const hasContext = content.includes('context:') || 
-                    content.includes('where:') || 
-                    content.includes('when:');
+  // A well-formulated project should have an end state, tasks, and an action-oriented title
+  return hasEndState && hasTasks && titleHasAction;
+}
+
+/**
+ * Check if a project title starts with an action verb
+ * @param {string} title The project title to check
+ * @returns {boolean} Whether the title starts with an action verb
+ */
+function checkTitleHasAction(title) {
+  if (!title) return false;
   
-  // A well-formulated project should have at least an outcome and a next action
-  return hasOutcome && hasNextAction;
+  // Common action verbs that should be at the beginning of project titles
+  const actionVerbs = [
+    'create', 'develop', 'implement', 'build', 'design', 'establish', 'set up',
+    'organize', 'plan', 'prepare', 'arrange', 'coordinate', 'execute', 'complete',
+    'finish', 'deliver', 'resolve', 'fix', 'repair', 'update', 'upgrade', 'improve',
+    'enhance', 'optimize', 'streamline', 'simplify', 'automate', 'integrate',
+    'connect', 'link', 'join', 'merge', 'combine', 'consolidate', 'unify',
+    'research', 'investigate', 'explore', 'analyze', 'assess', 'evaluate',
+    'review', 'examine', 'study', 'learn', 'understand', 'determine',
+    'decide', 'choose', 'select', 'identify', 'find', 'locate', 'discover',
+    'contact', 'call', 'email', 'write', 'send', 'submit', 'apply',
+    'get', 'obtain', 'acquire', 'secure', 'purchase', 'buy', 'order',
+    'schedule', 'book', 'reserve', 'arrange', 'set up', 'coordinate',
+    'meet', 'discuss', 'talk', 'consult', 'confer', 'negotiate',
+    'present', 'demonstrate', 'show', 'display', 'exhibit', 'showcase',
+    'train', 'teach', 'instruct', 'educate', 'coach', 'mentor',
+    'test', 'verify', 'validate', 'check', 'confirm', 'ensure',
+    'monitor', 'track', 'follow', 'observe', 'watch', 'oversee',
+    'manage', 'supervise', 'direct', 'lead', 'guide', 'control'
+  ];
+  
+  // Check if the title starts with any of the action verbs
+  const titleLower = title.toLowerCase();
+  return actionVerbs.some(verb => titleLower.startsWith(verb));
 }
 
 /**
@@ -93,5 +118,6 @@ module.exports = {
   formatDate,
   debounce,
   escapeHtml,
-  generateId
+  generateId,
+  checkTitleHasAction
 };

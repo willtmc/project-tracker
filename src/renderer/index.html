@@ -362,6 +362,163 @@
       gap: 10px;
     }
     
+    /* Duplicate Project Review Styles */
+    .duplicate-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 15px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    
+    .duplicate-project {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 15px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .duplicate-project-header {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10px;
+    }
+    
+    .duplicate-project-header h4 {
+      margin: 0 0 5px 0;
+      font-size: 18px;
+      color: #343a40;
+    }
+    
+    .duplicate-project-header small {
+      color: #6c757d;
+      font-size: 12px;
+    }
+    
+    .duplicate-project-content {
+      font-size: 14px;
+      color: #495057;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      border-top: 1px solid #dee2e6;
+      padding-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .duplicate-list {
+      margin: 20px 0;
+      max-height: 500px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+    }
+    
+    .duplicate-project {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    
+    .duplicate-project:last-child {
+      margin-bottom: 0;
+    }
+    
+    .duplicate-project-header {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .duplicate-project-header h4 {
+      margin: 0;
+      font-size: 18px;
+      color: #333;
+    }
+    
+    .duplicate-project-header small {
+      display: block;
+      color: #666;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    
+    .duplicate-project-content {
+      font-size: 14px;
+      color: #555;
+    }
+    
+    .duplicate-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+    
+    /* Duplicate Review Styles */
+    .duplicate-list-container {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    
+    .duplicate-group-counter {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+      color: #007bff;
+    }
+    
+    .duplicate-project {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .duplicate-project-header {
+      margin-bottom: 10px;
+    }
+    
+    .duplicate-project-header h4 {
+      margin-bottom: 5px;
+      color: #333;
+    }
+    
+    .duplicate-project-header small {
+      color: #666;
+      font-size: 12px;
+      display: block;
+    }
+    
+    .duplicate-project-content {
+      font-size: 14px;
+      color: #555;
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      max-height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    
+    .review-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
     /* Buttons */
     .btn {
       padding: 8px 16px;
@@ -527,6 +684,68 @@
       from { opacity: 1; transform: translateY(0); }
       to { opacity: 0; transform: translateY(-10px); }
     }
+    
+    /* Well-formulation container styles */
+    .well-formulation-container {
+      display: none;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    
+    .well-formulation-header {
+      margin-bottom: 20px;
+    }
+    
+    .well-formulation-instructions {
+      background-color: #e9ecef;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    
+    .well-formulation-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .well-formulation-input {
+      margin: 20px 0;
+    }
+    
+    .well-formulation-input label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    
+    .well-formulation-input textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+    
+    .well-formulation-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    /* Project item styles */
+    .project-item.well-formulated {
+      border-left: 4px solid #28a745;
+    }
+    
+    .project-item.needs-improvement {
+      border-left: 4px solid #ffc107;
+    }
   </style>
 </head>
 <body>
@@ -534,8 +753,47 @@
     <header>
       <h1>Project Tracker</h1>
       <div class="header-actions">
+        <div class="view-toggle">
+          <button id="grid-view-btn" class="view-btn active" title="Grid View">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </button>
+          <button id="list-view-btn" class="view-btn" title="List View">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <button id="theme-toggle" class="theme-toggle" title="Toggle Dark Mode">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-light">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-dark">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
         <button id="refresh-btn" class="btn btn-secondary">Refresh Projects</button>
-        <button id="report-btn" class="btn btn-primary">Generate Report</button>
+        <button id="remove-duplicates-btn" class="btn btn-primary">Remove Duplicates</button>
+        <button id="sort-projects-btn" class="btn btn-primary">Sort Projects by Status</button>
+        <button id="formulate-projects-btn" class="btn btn-primary">Formulate Projects</button>
+        <button id="view-report-btn" class="btn btn-primary">View Report</button>
       </div>
     </header>
     
@@ -544,8 +802,34 @@
       <button class="tab-btn" data-tab="waiting">Waiting</button>
       <button class="tab-btn" data-tab="someday">Someday</button>
       <button class="tab-btn" data-tab="archive">Archive</button>
-      <button class="tab-btn" data-tab="report">Report</button>
-      <button class="tab-btn" data-tab="review">Review</button>
+    </div>
+    
+    <!-- Add this right after the tabs section, before the project lists -->
+    <div class="filter-bar">
+      <div class="search-container">
+        <input type="text" id="project-search" placeholder="Search titles, content, tasks..." class="search-input">
+        <button id="search-btn" class="search-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="filter-options">
+        <select id="filter-status" class="filter-select">
+          <option value="all">All Statuses</option>
+          <option value="well-formulated">Well Formulated</option>
+          <option value="needs-improvement">Needs Improvement</option>
+        </select>
+        <select id="filter-sort" class="filter-select">
+          <option value="modified-desc">Last Modified (Newest)</option>
+          <option value="modified-asc">Last Modified (Oldest)</option>
+          <option value="title-asc">Title (A-Z)</option>
+          <option value="title-desc">Title (Z-A)</option>
+          <option value="progress-desc">Progress (Highest)</option>
+          <option value="progress-asc">Progress (Lowest)</option>
+        </select>
+      </div>
     </div>
     
     <div class="tab-content">
@@ -603,16 +887,18 @@
       
       <!-- Report Tab -->
       <div id="report-tab" class="tab-pane">
-        <div id="report-timestamp" class="report-timestamp">No report generated yet</div>
-        
-        <div class="report-section">
-          <h3>Project Statistics</h3>
-          <div id="project-stats" class="report-stats"></div>
-        </div>
-        
-        <div class="report-section">
-          <h3>Recent Activity</h3>
-          <div id="recent-activity"></div>
+        <div id="report-container" class="report-container">
+          <div id="report-timestamp" class="report-timestamp">No report generated yet</div>
+          
+          <div class="report-section">
+            <h3>Project Statistics</h3>
+            <div id="project-stats" class="report-stats"></div>
+          </div>
+          
+          <div class="report-section">
+            <h3>Recent Activity</h3>
+            <div id="recent-activity"></div>
+          </div>
         </div>
       </div>
       
@@ -642,6 +928,7 @@
           <div class="review-actions">
             <button id="start-review-btn" class="btn btn-primary">Start Review</button>
             <button id="next-review-btn" class="btn btn-secondary" disabled>Next Project</button>
+            <button id="complete-review-btn" class="btn btn-success" style="display: none;">Complete Review</button>
           </div>
         </div>
         
@@ -656,12 +943,65 @@
             </div>
           </div>
         </div>
+        
+        <!-- Duplicate Review Container -->
+        <div id="duplicate-review-container" class="review-container" style="display: none;">
+          <div class="review-header">
+            <h3>Duplicate Project Review</h3>
+            <div class="review-controls">
+              <button id="merge-duplicates-btn" class="btn btn-primary">Merge Projects</button>
+              <button id="skip-duplicate-btn" class="btn btn-secondary">Skip</button>
+              <button id="end-duplicate-review-btn" class="btn btn-danger">Cancel</button>
+            </div>
+          </div>
+          <div id="duplicate-list" class="duplicate-list-container">
+            <!-- Duplicate projects will be displayed here -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Well-Formulation Tab -->
+      <div id="well-formulation-tab" class="tab-pane">
+        <h2>Well-Formulation</h2>
+        <p>This tab helps improve project formulation to ensure all projects are well-structured.</p>
+        
+        <!-- Well-formulation container -->
+        <div class="well-formulation-container">
+          <div class="well-formulation-header">
+            <h2>Improve Project Formulation</h2>
+            <div class="well-formulation-instructions"></div>
+          </div>
+          <div class="well-formulation-content">
+            <h3 id="well-formulation-project-title"></h3>
+            <div id="well-formulation-project-content" class="project-content"></div>
+            <div class="well-formulation-input">
+              <label for="end-state-input">Describe the desired end state:</label>
+              <textarea id="end-state-input" rows="4" placeholder="What does success look like for this project?"></textarea>
+            </div>
+            <div class="well-formulation-actions">
+              <button id="reformulate-btn" class="btn btn-primary">Reformulate Project</button>
+              <button id="skip-reformulation-btn" class="btn btn-secondary">Skip</button>
+              <button id="complete-well-formulation-btn" class="btn btn-success" style="display: none;">Complete Well-Formulation</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
   
   <!-- Notification Container -->
   <div id="notification-container" class="notification-container"></div>
+
+  <!-- Phase Completion Modal -->
+  <div id="phase-completion-modal" class="modal">
+    <div class="modal-content phase-completion-content">
+      <h2 id="phase-completion-title">Phase Completed!</h2>
+      <div id="phase-completion-message"></div>
+      <div class="phase-completion-actions">
+        <button id="next-phase-btn" class="btn btn-primary">Continue to Next Phase</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Project Modal -->
   <div id="project-modal" class="modal">

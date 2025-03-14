@@ -59,6 +59,8 @@ class ProjectManager {
       archive: []
     };
     
+    let directoriesAccessible = false;
+    
     for (const [status, dir] of Object.entries(this.projectDirs)) {
       console.log(`Loading projects from ${status} directory: ${dir}`);
       try {
@@ -66,9 +68,59 @@ class ProjectManager {
         await fs.access(dir);
         projects[status] = await this.getProjectsFromDirectory(dir, status);
         console.log(`Loaded ${projects[status].length} ${status} projects`);
+        directoriesAccessible = true;
       } catch (error) {
         console.error(`Error accessing directory ${dir}:`, error.message);
         // Keep the empty array for this status
+      }
+    }
+    
+    // If no directories were accessible, fall back to database records
+    if (!directoriesAccessible) {
+      console.log('No project directories were accessible. Falling back to database records...');
+      try {
+        // Get all projects from database
+        console.log('Querying database for all projects...');
+        const dbProjects = await Project.findAll();
+        console.log(`Found ${dbProjects.length} projects in database`);
+        
+        // Group projects by status
+        for (const project of dbProjects) {
+          const status = project.status || 'active';
+          console.log(`Adding project ${project.filename} to ${status} group`);
+          if (!projects[status]) {
+            projects[status] = [];
+          }
+          
+          // Convert Sequelize model to plain object and add additional properties
+          const plainProject = project.get({ plain: true });
+          
+          // Parse issues if it's a JSON string
+          if (plainProject.issues && typeof plainProject.issues === 'string') {
+            try {
+              plainProject.issues = JSON.parse(plainProject.issues);
+            } catch (e) {
+              plainProject.issues = [];
+            }
+          }
+          
+          // Add to appropriate status array
+          projects[status].push({
+            ...plainProject,
+            completionPercentage: plainProject.totalTasks > 0 
+              ? (plainProject.completedTasks / plainProject.totalTasks) * 100 
+              : 0
+          });
+        }
+        
+        // Log the number of projects in each status
+        for (const [status, statusProjects] of Object.entries(projects)) {
+          console.log(`${status} projects: ${statusProjects.length}`);
+        }
+        
+        console.log('Projects loaded from database successfully');
+      } catch (error) {
+        console.error('Error loading projects from database:', error);
       }
     }
     
@@ -492,7 +544,7 @@ CONTENT:
       
       // Call OpenAI API
       const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o", // Using GPT-4o for improved project reformulation
         messages: [
           { role: "system", content: "You are a helpful assistant that reformulates project descriptions to ensure they are well-structured and complete." },
           { role: "user", content: prompt }

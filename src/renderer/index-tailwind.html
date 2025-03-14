@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-full bg-secondary-50 dark:bg-secondary-900 text-secondary-900 dark:text-secondary-50 p-5">
+  <div class="container max-w-7xl mx-auto bg-white dark:bg-secondary-800 rounded-lg shadow-md">
+    <header class="flex justify-between items-center p-5 border-b border-secondary-200 dark:border-secondary-700">
+      <h1 class="text-2xl font-medium">Project Tracker</h1>
+      <div class="flex items-center gap-3">
+        <div class="flex border border-secondary-200 dark:border-secondary-700 rounded overflow-hidden">
+          <button id="grid-view-btn" class="view-btn active" title="Grid View">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </button>
+          <button id="list-view-btn" class="view-btn" title="List View">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <button id="theme-toggle" class="p-2 rounded-full hover:bg-secondary-100 dark:hover:bg-secondary-700 transition-colors" title="Toggle Dark Mode">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button id="refresh-btn" class="btn btn-secondary">Refresh Projects</button>
+        <button id="remove-duplicates-btn" class="btn btn-primary">Remove Duplicates</button>
+        <button id="sort-projects-btn" class="btn btn-primary">Sort Projects</button>
+        <button id="formulate-projects-btn" class="btn btn-primary">Formulate Projects</button>
+        <button id="view-report-btn" class="btn btn-primary">View Report</button>
+      </div>
+    </header>
+    
+    <div class="flex border-b border-secondary-200 dark:border-secondary-700">
+      <button class="tab-btn active" data-tab="active">Active</button>
+      <button class="tab-btn" data-tab="waiting">Waiting</button>
+      <button class="tab-btn" data-tab="someday">Someday</button>
+      <button class="tab-btn" data-tab="archive">Archive</button>
+    </div>
+    
+    <!-- Filter Bar -->
+    <div class="p-5 bg-white dark:bg-secondary-800 border-b border-secondary-200 dark:border-secondary-700 flex flex-wrap justify-between items-center gap-4">
+      <div class="relative flex-1 min-w-[250px]">
+        <input type="text" id="project-search" placeholder="Search titles, content, tasks..." class="input pr-10">
+        <button id="search-btn" class="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-secondary-500 hover:text-primary-600 dark:hover:text-primary-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="flex gap-4 flex-wrap">
+        <select id="filter-status" class="input max-w-[200px]">
+          <option value="all">All Statuses</option>
+          <option value="well-formulated">Well Formulated</option>
+          <option value="needs-improvement">Needs Improvement</option>
+        </select>
+        <select id="filter-sort" class="input max-w-[200px]">
+          <option value="modified-desc">Last Modified (Newest)</option>
+          <option value="modified-asc">Last Modified (Oldest)</option>
+          <option value="title-asc">Title (A-Z)</option>
+          <option value="title-desc">Title (Z-A)</option>
+          <option value="progress-desc">Progress (Highest)</option>
+          <option value="progress-asc">Progress (Lowest)</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="p-5">
+      <!-- Active Projects Tab -->
+      <div id="active-tab" class="tab-pane active">
+        <div class="flex flex-wrap gap-5 mb-6">
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="active-count">0</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Active Projects</div>
+          </div>
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="completion-rate">0%</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Task Completion</div>
+          </div>
+        </div>
+        
+        <div id="active-projects" class="projects-grid"></div>
+      </div>
+      
+      <!-- Waiting Projects Tab -->
+      <div id="waiting-tab" class="tab-pane">
+        <div class="flex flex-wrap gap-5 mb-6">
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="waiting-count">0</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Waiting Projects</div>
+          </div>
+        </div>
+        
+        <div id="waiting-projects" class="projects-grid"></div>
+      </div>
+      
+      <!-- Someday Projects Tab -->
+      <div id="someday-tab" class="tab-pane">
+        <div class="flex flex-wrap gap-5 mb-6">
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="someday-count">0</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Someday Projects</div>
+          </div>
+        </div>
+        
+        <div id="someday-projects" class="projects-grid"></div>
+      </div>
+      
+      <!-- Archive Projects Tab -->
+      <div id="archive-tab" class="tab-pane">
+        <div class="flex flex-wrap gap-5 mb-6">
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="archive-count">0</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Archived Projects</div>
+          </div>
+        </div>
+        
+        <div id="archive-projects" class="projects-grid"></div>
+      </div>
+      
+      <!-- Report Tab -->
+      <div id="report-tab" class="tab-pane">
+        <div id="report-container" class="card p-6">
+          <div id="report-timestamp" class="text-secondary-500 dark:text-secondary-400 italic mb-6">No report generated yet</div>
+          
+          <div class="mb-8">
+            <h3 class="text-xl mb-4 pb-2 border-b border-secondary-200 dark:border-secondary-700">Project Statistics</h3>
+            <div id="project-stats" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+          </div>
+          
+          <div class="mb-8">
+            <h3 class="text-xl mb-4 pb-2 border-b border-secondary-200 dark:border-secondary-700">Recent Activity</h3>
+            <div id="recent-activity"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Review Tab -->
+      <div id="review-tab" class="tab-pane">
+        <div class="card p-6 mb-6 border-l-4 border-l-primary-500">
+          <h3 class="text-xl mb-2">Project Review</h3>
+          <p class="mb-2">Review active projects one by one with keyboard shortcuts:</p>
+          <ul class="list-disc pl-5 mb-4">
+            <li><span class="font-medium">Y</span> - Keep in Active (Yes, still working on it)</li>
+            <li><span class="font-medium">A</span> - Archive this project</li>
+            <li><span class="font-medium">S</span> - Move to Someday</li>
+            <li><span class="font-medium">W</span> - Move to Waiting (will prompt for input needed)</li>
+          </ul>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="text-center">
+            <span id="review-count" class="font-medium">0</span> of <span id="review-total" class="font-medium">0</span> projects reviewed
+          </div>
+          
+          <div class="card p-6">
+            <h2 id="review-project-title" class="text-xl font-medium mb-4">Select Start to begin review</h2>
+            <pre id="review-project-content" class="bg-secondary-100 dark:bg-secondary-800 p-4 rounded-md mb-6 max-h-[300px] overflow-y-auto font-mono text-sm"></pre>
+          </div>
+          
+          <div class="flex justify-center gap-4">
+            <button id="start-review-btn" class="btn btn-primary flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Start Review
+            </button>
+            <button id="next-review-btn" class="btn btn-secondary" disabled>Next Project</button>
+            <button id="complete-review-btn" class="btn btn-primary hidden">Complete Review</button>
+          </div>
+        </div>
+        
+        <!-- Waiting Input Dialog -->
+        <div id="waiting-dialog" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+          <div class="bg-white dark:bg-secondary-800 rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-xl mb-4">What are you waiting on?</h3>
+            <textarea id="waiting-input-text" rows="4" placeholder="Describe what input you're waiting for..." class="input mb-4"></textarea>
+            <div class="flex justify-end gap-3">
+              <button id="waiting-submit-btn" class="btn btn-primary">Save</button>
+              <button id="waiting-cancel-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Duplicate Review Container -->
+        <div id="duplicate-review-container" class="hidden space-y-6 mt-8">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xl">Duplicate Project Review</h3>
+            <div class="flex gap-3">
+              <button id="merge-duplicates-btn" class="btn btn-primary">Merge Projects</button>
+              <button id="skip-duplicate-btn" class="btn btn-secondary">Skip</button>
+              <button id="end-duplicate-review-btn" class="btn btn-error">Cancel</button>
+            </div>
+          </div>
+          <div id="duplicate-list" class="card p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <!-- Duplicate projects will be displayed here -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Well-Formulation Tab -->
+      <div id="well-formulation-tab" class="tab-pane">
+        <h2 class="text-2xl mb-4">Well-Formulation</h2>
+        <p class="mb-6">This tab helps improve project formulation to ensure all projects are well-structured.</p>
+        
+        <!-- Well-formulation container -->
+        <div class="card p-6 hidden">
+          <div class="mb-6">
+            <h2 class="text-xl mb-4">Improve Project Formulation</h2>
+            <div class="bg-secondary-100 dark:bg-secondary-800 p-4 rounded-md mb-4"></div>
+          </div>
+          <div class="card p-6">
+            <h3 id="well-formulation-project-title" class="text-lg font-medium mb-4"></h3>
+            <div id="well-formulation-project-content" class="bg-secondary-100 dark:bg-secondary-800 p-4 rounded-md mb-6"></div>
+            <div class="mb-6">
+              <label for="end-state-input" class="block font-medium mb-2">Describe the desired end state:</label>
+              <textarea id="end-state-input" rows="4" placeholder="What does success look like for this project?" class="input"></textarea>
+            </div>
+            <div class="flex gap-3">
+              <button id="reformulate-btn" class="btn btn-primary">Reformulate Project</button>
+              <button id="skip-reformulation-btn" class="btn btn-secondary">Skip</button>
+              <button id="complete-well-formulation-btn" class="btn btn-primary hidden">Complete Well-Formulation</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Notification Container -->
+  <div id="notification-container" class="fixed top-5 right-5 z-50 max-w-sm"></div>
+
+  <!-- Phase Completion Modal -->
+  <div id="phase-completion-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-secondary-800 rounded-lg p-8 max-w-xl w-full text-center border-t-4 border-success-500">
+      <h2 id="phase-completion-title" class="text-2xl text-success-600 dark:text-success-400 mb-4">Phase Completed!</h2>
+      <div id="phase-completion-message" class="bg-secondary-100 dark:bg-secondary-700 p-4 rounded-md mb-6"></div>
+      <div>
+        <button id="next-phase-btn" class="btn btn-primary">Continue to Next Phase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Modal -->
+  <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-secondary-800 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <span class="close absolute top-4 right-4 text-2xl font-bold cursor-pointer text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300">&times;</span>
+      <h2 id="modal-title" class="text-2xl mb-6 pr-8">Project Title</h2>
+      
+      <pre id="project-details" class="bg-secondary-100 dark:bg-secondary-800 p-4 rounded-md mb-6 max-h-[300px] overflow-y-auto font-mono text-sm"></pre>
+      
+      <div class="mb-6 space-y-3">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="project-active" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+          <span>I am actively working on this project</span>
+        </label>
+        
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="project-waiting" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+          <span>I am waiting on input for this project</span>
+        </label>
+        
+        <div id="waiting-input-group" class="pl-6 pt-2 hidden">
+          <label for="waiting-input" class="block mb-2">What input are you waiting for?</label>
+          <input type="text" id="waiting-input" placeholder="e.g., Feedback from John, research results, etc." class="input">
+        </div>
+      </div>
+      
+      <div id="validation-section" class="bg-secondary-100 dark:bg-secondary-800 p-4 rounded-md mb-6 hidden">
+        <div id="validation-messages" class="mb-4"></div>
+        
+        <div id="reformulation-group" class="hidden">
+          <label for="end-state" class="block mb-2">Revise the end state of this project:</label>
+          <textarea id="end-state" placeholder="Describe what the completed project looks like..." class="input mb-3" rows="4"></textarea>
+          <button id="reformulate-btn" class="btn btn-primary">Reformulate with AI</button>
+        </div>
+      </div>
+      
+      <div class="flex justify-end gap-3">
+        <button id="save-project-btn" class="btn btn-primary">Save Changes</button>
+        <button id="cancel-btn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Include marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <!-- Project template script -->
+  <script src="project-template-tailwind.js"></script>
+  
+  <!-- Renderer script -->
+  <script src="renderer-tailwind.js"></script>
+  
+  <!-- Debug script (load last) -->
+  <script src="debug.js"></script>
+</body>
+</html> 

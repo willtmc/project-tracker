@@ -176,11 +176,110 @@ async function saveProjectChanges() {
   }
 }
 
+/**
+ * Find potential duplicate projects
+ * @returns {Promise<Array>} Array of duplicate groups
+ */
+async function findPotentialDuplicates() {
+  console.log('Finding potential duplicate projects');
+  
+  try {
+    const result = await ipcRenderer.invoke('find-potential-duplicates');
+    
+    if (result.success) {
+      console.log(`Found ${result.duplicateGroups.length} potential duplicate groups`);
+      return result.duplicateGroups;
+    } else {
+      console.error('Error finding potential duplicates:', result.message);
+      return [];
+    }
+  } catch (error) {
+    console.error('Error finding potential duplicates:', error);
+    return [];
+  }
+}
+
+/**
+ * Merge duplicate projects
+ * @param {Array} projectPaths Array of project paths to merge
+ * @returns {Promise<Object>} Result of the merge operation
+ */
+async function mergeDuplicateProjects(projectPaths) {
+  console.log(`Merging duplicate projects: ${projectPaths.join(', ')}`);
+  
+  try {
+    const result = await ipcRenderer.invoke('merge-duplicate-projects', { projectPaths });
+    
+    if (result.success) {
+      console.log('Projects merged successfully');
+      return result;
+    } else {
+      console.error('Error merging projects:', result.message);
+      return { success: false, message: result.message };
+    }
+  } catch (error) {
+    console.error('Error merging projects:', error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Get projects with potential duplicates
+ * @returns {Promise<Array>} Array of projects with potential duplicates
+ */
+async function getProjectsWithDuplicates() {
+  console.log('Getting projects with potential duplicates');
+  
+  try {
+    const result = await ipcRenderer.invoke('get-projects-with-duplicates');
+    
+    if (result.success) {
+      console.log(`Found ${result.projects.length} projects with potential duplicates`);
+      return result.projects;
+    } else {
+      console.error('Error getting projects with duplicates:', result.message);
+      return [];
+    }
+  } catch (error) {
+    console.error('Error getting projects with duplicates:', error);
+    return [];
+  }
+}
+
+/**
+ * Update a project with new data
+ * @param {Object} project The project data to update
+ * @returns {Promise<boolean>} True if successful, false otherwise
+ */
+async function updateProject(project) {
+  console.log(`Updating project: ${project.title}`);
+  
+  try {
+    // Update project through main process
+    const result = await ipcRenderer.invoke('update-project', project);
+    
+    if (result && result.success) {
+      console.log('Project updated successfully');
+      return true;
+    } else {
+      console.error('Failed to update project:', result ? result.message : 'Unknown error');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error updating project:', error);
+    return false;
+  }
+}
+
 module.exports = {
   loadProjects,
   getProjectsData,
   setCurrentProject,
   getCurrentProject,
   updateProjectStatus,
-  saveProjectChanges
+  saveProjectChanges,
+  findPotentialDuplicates,
+  mergeDuplicateProjects,
+  getProjectsWithDuplicates,
+  updateProject
 };
