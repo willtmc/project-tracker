@@ -54,41 +54,174 @@ let currentFilter = {
   sort: 'modified-desc'
 };
 
+// Helper function to safely get DOM elements
+function safeGetElement(id) {
+  const element = document.getElementById(id);
+  if (!element) {
+    console.warn(`Element with ID '${id}' not found in DOM`);
+  }
+  return element;
+}
+
+// Duplicate detection elements - will be properly initialized when DOM is loaded
+let startDuplicateDetectionBtn;
+let duplicateReviewContainer;
+let duplicateList;
+let mergeDuplicatesBtn;
+let skipDuplicateBtn;
+let endDuplicateReviewBtn;
+
+// Project review elements
+let startReviewBtn;
+let nextReviewBtn;
+let reviewProjectTitle;
+let reviewProjectContent;
+let reviewCount;
+let reviewTotal;
+let duplicatesCount;
+
+// Function to initialize UI elements safely
+function initializeUIElements() {
+  startDuplicateDetectionBtn = safeGetElement('start-duplicate-detection-btn');
+  duplicateReviewContainer = safeGetElement('duplicate-review-container');
+  duplicateList = safeGetElement('duplicate-list');
+  mergeDuplicatesBtn = safeGetElement('merge-duplicates-btn');
+  skipDuplicateBtn = safeGetElement('skip-duplicate-btn');
+  endDuplicateReviewBtn = safeGetElement('end-duplicate-review-btn');
+  startReviewBtn = safeGetElement('start-review-btn');
+  nextReviewBtn = safeGetElement('next-review-btn');
+  reviewProjectTitle = safeGetElement('review-project-title');
+  reviewProjectContent = safeGetElement('review-project-content');
+  reviewCount = safeGetElement('review-count');
+  reviewTotal = safeGetElement('review-total');
+  duplicatesCount = safeGetElement('duplicates-count');
+}
+
+// Global variables for duplicate detection
+let duplicateGroups = [];
+let currentDuplicateGroupIndex = 0;
+
+// Global variables for project review
+let activeProjectsForReview = [];
+let currentReviewIndex = 0;
+let reviewInProgress = false;
+
 // Initialize the application
 function init() {
   try {
     console.log('Initializing application...');
     
-    // Set up event listeners
-    setupEventListeners();
+    // Initialize all UI elements - this should be done first
+    initializeUIElements();
     
-    // Check database connection before loading projects
+    // Log all the important HTML elements
+    console.log('Important UI elements:');
+    console.log('- startDuplicateDetectionBtn:', startDuplicateDetectionBtn ? 'Found' : 'Missing');
+    console.log('- duplicateReviewContainer:', duplicateReviewContainer ? 'Found' : 'Missing');
+    console.log('- duplicateList:', duplicateList ? 'Found' : 'Missing');
+    console.log('- mergeDuplicatesBtn:', mergeDuplicatesBtn ? 'Found' : 'Missing');
+    console.log('- skipDuplicateBtn:', skipDuplicateBtn ? 'Found' : 'Missing');
+    console.log('- endDuplicateReviewBtn:', endDuplicateReviewBtn ? 'Found' : 'Missing'); 
+    
+    // Set up event listeners more safely
+    try {
+      setupEventListeners();
+      console.log('Event listeners set up successfully');
+    } catch (listenerError) {
+      console.error('Error setting up event listeners:', listenerError);
+    }
+    
+    // Add a direct click handler to the duplicate detection button - with additional safety
+    if (startDuplicateDetectionBtn) {
+      console.log('Adding direct click handler to startDuplicateDetectionBtn');
+      try {
+        const safeStartDuplication = function() {
+          console.log('Start Duplicate Detection button clicked directly');
+          try {
+            startDuplicateDetection();
+          } catch (error) {
+            console.error('Error in startDuplicateDetection:', error);
+            showNotification('Error starting duplicate detection: ' + error.message, 'error');
+          }
+        };
+        
+        startDuplicateDetectionBtn.addEventListener('click', safeStartDuplication);
+      } catch (btnError) {
+        console.error('Error attaching click handler to startDuplicateDetectionBtn:', btnError);
+      }
+    } else {
+      console.error('startDuplicateDetectionBtn element not found');
+    }
+    
+    // Add a direct click handler to the duplicates tab button
+    const duplicatesTabButton = document.querySelector('.tab-btn[data-tab="duplicates"]');
+    if (duplicatesTabButton) {
+      console.log('Adding direct click handler to duplicates tab button');
+      duplicatesTabButton.addEventListener('click', function() {
+        console.log('Duplicates tab button clicked directly');
+        try {
+          switchTab('duplicates');
+        } catch (error) {
+          console.error('Error switching to duplicates tab:', error);
+        }
+      });
+    } else {
+      console.error('Duplicates tab button not found');
+    }
+    
+    // Load projects immediately
+    console.log('Loading projects on startup...');
+    try {
+      loadProjects();
+    } catch (projectError) {
+      console.error('Error loading projects:', projectError);
+    }
+    
+    // Check database connection in parallel
     checkDatabaseConnection()
       .then(isConnected => {
-        if (isConnected) {
-          // Load projects from storage
-          loadProjects();
-        } else {
+        if (!isConnected) {
           showNotification('Database connection failed. Retrying...', 'error');
           // Try to reconnect after a delay
           setTimeout(() => {
             retryDatabaseConnection();
           }, 3000);
         }
+      })
+      .catch(error => {
+        console.error('Error checking database connection:', error);
       });
     
     // Initialize view toggle
-    initViewToggle();
+    try {
+      initViewToggle();
+    } catch (viewError) {
+      console.error('Error initializing view toggle:', viewError);
+    }
     
     // Initialize theme toggle
-    initThemeToggle();
+    try {
+      initThemeToggle();
+    } catch (themeError) {
+      console.error('Error initializing theme toggle:', themeError);
+    }
     
     // Initialize tab navigation
-    initTabs();
+    try {
+      initTabs();
+    } catch (tabError) {
+      console.error('Error initializing tabs:', tabError);
+    }
     
     console.log('Application initialized successfully');
   } catch (error) {
     console.error('Error initializing application:', error);
+    // Attempt to load projects anyway as a fallback
+    try {
+      loadProjects();
+    } catch (fallbackError) {
+      console.error('Fallback project loading also failed:', fallbackError);
+    }
   }
 }
 
@@ -201,6 +334,48 @@ function setupEventListeners() {
   formulateProjectsBtn.addEventListener('click', formulateProjects);
   viewReportBtn.addEventListener('click', viewReport);
   
+  // Duplicate detection event listeners - with safety checks
+  if (startDuplicateDetectionBtn) {
+    startDuplicateDetectionBtn.addEventListener('click', startDuplicateDetection);
+  } else {
+    console.error('startDuplicateDetectionBtn not found during event setup');
+  }
+  
+  if (mergeDuplicatesBtn) {
+    mergeDuplicatesBtn.addEventListener('click', mergeDuplicates);
+  } else {
+    console.error('mergeDuplicatesBtn not found during event setup');
+  }
+  
+  if (skipDuplicateBtn) {
+    console.log('Setting up click handler for skipDuplicateBtn');
+    skipDuplicateBtn.addEventListener('click', function() {
+      console.log('Skip button clicked directly');
+      skipDuplicate();
+    });
+  } else {
+    console.error('skipDuplicateBtn not found during event setup');
+  }
+  
+  if (endDuplicateReviewBtn) {
+    endDuplicateReviewBtn.addEventListener('click', endDuplicateReview);
+  } else {
+    console.error('endDuplicateReviewBtn not found during event setup');
+  }
+  
+  // Project review event listeners
+  if (startReviewBtn) {
+    startReviewBtn.addEventListener('click', startProjectReview);
+  } else {
+    console.error('startReviewBtn not found during event setup');
+  }
+  
+  if (nextReviewBtn) {
+    nextReviewBtn.addEventListener('click', showNextProject);
+  } else {
+    console.error('nextReviewBtn not found during event setup');
+  }
+  
   // Project modal
   projectWaiting.addEventListener('change', () => {
     waitingInputGroup.classList.toggle('hidden', !projectWaiting.checked);
@@ -221,6 +396,11 @@ function setupEventListeners() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !projectModal.classList.contains('hidden')) {
       closeProjectModal();
+    }
+    
+    // Project review keyboard shortcuts
+    if (reviewInProgress) {
+      handleReviewKeypress(e);
     }
   });
 }
@@ -279,10 +459,13 @@ function initTabs() {
 
 // Switch to a specific tab
 function switchTab(tabId) {
+  console.log(`Switching to tab: ${tabId}`);
+  
   // Update active tab button
   tabButtons.forEach(button => {
     if (button.dataset.tab === tabId) {
       button.classList.add('active');
+      console.log(`Activated tab button for ${tabId}`);
     } else {
       button.classList.remove('active');
     }
@@ -290,10 +473,36 @@ function switchTab(tabId) {
   
   // Update active tab pane
   tabPanes.forEach(pane => {
+    console.log(`Checking tab pane: ${pane.id} against ${tabId}-tab`);
     if (pane.id === `${tabId}-tab`) {
-      pane.classList.add('active');
+      // Show this tab pane
+      pane.style.display = 'block';
+      console.log(`Activated tab pane: ${pane.id}`);
+      
+      // Special handling for duplicates tab
+      if (tabId === 'duplicates') {
+        console.log('Duplicates tab activated, ensuring UI elements are properly initialized');
+        if (duplicateReviewContainer) {
+          console.log('duplicateReviewContainer found:', duplicateReviewContainer);
+          // Always hide the duplicate review container when switching to the tab
+          // It will only be shown when duplicates are actively being reviewed
+          duplicateReviewContainer.style.display = 'none';
+          
+          // Also clear any existing duplicate list content
+          if (duplicateList) {
+            duplicateList.innerHTML = '';
+          }
+          
+          // Reset global state
+          duplicateGroups = [];
+          currentDuplicateGroupIndex = 0;
+        } else {
+          console.error('duplicateReviewContainer not found');
+        }
+      }
     } else {
-      pane.classList.remove('active');
+      // Hide all other tab panes
+      pane.style.display = 'none';
     }
   });
   
@@ -342,14 +551,18 @@ function loadProjects() {
               console.log(`Sample ${status} project:`, statusProjects[0]);
             }
           }
-        } else if (Array.isArray(data)) {
-          console.log(`Total projects: ${data.length}`);
-          if (data.length > 0) {
-            console.log('Sample project:', data[0]);
+          
+          // Ensure projects is properly structured
+          projects = data;
+          
+          // Force a synchronization if needed
+          if (window.api.synchronizeProjects) {
+            console.log('Forcing synchronization to ensure UI consistency...');
+            window.api.synchronizeProjects().catch(err => {
+              console.error('Error during forced synchronization:', err);
+            });
           }
         }
-        
-        projects = data;
         renderProjects();
         updateCounters();
         showNotification('Projects loaded successfully', 'success');
@@ -1053,6 +1266,546 @@ function retryDatabaseConnection() {
   }
 }
 
+/**
+ * Start the duplicate detection process
+ */
+async function startDuplicateDetection() {
+  try {
+    console.log('Starting duplicate detection process...');
+    
+    // Ensure we switch to the duplicates tab safely
+    try {
+      switchTab('duplicates');
+    } catch (tabError) {
+      console.error('Error switching to duplicates tab:', tabError);
+    }
+    
+    // Show loading state - with null check
+    if (startDuplicateDetectionBtn) {
+      showLoading(startDuplicateDetectionBtn);
+    }
+    
+    // Show notification to user
+    showNotification('Searching for potential duplicate projects...', 'info');
+    
+    // Check if API is available
+    if (!window.api || !window.api.findPotentialDuplicates) {
+      console.error('API not available for duplicate detection');
+      showNotification('Error: Cannot access duplicate detection functionality', 'error');
+      if (startDuplicateDetectionBtn) {
+        hideLoading(startDuplicateDetectionBtn);
+      }
+      return;
+    }
+    
+    // Find potential duplicates
+    console.log('Calling window.api.findPotentialDuplicates()...');
+    let result;
+    try {
+      result = await window.api.findPotentialDuplicates();
+      console.log('Result from findPotentialDuplicates:', result);
+    } catch (apiError) {
+      console.error('Error calling findPotentialDuplicates API:', apiError);
+      showNotification('API Error in duplicate detection: ' + (apiError.message || 'Unknown error'), 'error');
+      if (startDuplicateDetectionBtn) {
+        hideLoading(startDuplicateDetectionBtn);
+      }
+      return;
+    }
+    
+    // Hide loading state - with null check
+    if (startDuplicateDetectionBtn) {
+      hideLoading(startDuplicateDetectionBtn);
+    }
+    
+    if (result && result.success) {
+      // Get projects with potential duplicates
+      console.log('Calling window.api.getProjectsWithPotentialDuplicates()...');
+      let projectsResult;
+      try {
+        projectsResult = await window.api.getProjectsWithPotentialDuplicates();
+        console.log('Result from getProjectsWithPotentialDuplicates:', projectsResult);
+      } catch (projectsError) {
+        console.error('Error calling getProjectsWithPotentialDuplicates API:', projectsError);
+        showNotification('API Error getting duplicate projects: ' + (projectsError.message || 'Unknown error'), 'error');
+        return;
+      }
+      
+      if (projectsResult && projectsResult.success && projectsResult.duplicateGroups && 
+          Array.isArray(projectsResult.duplicateGroups) && projectsResult.duplicateGroups.length > 0) {
+        
+        console.log('Found duplicate groups:', projectsResult.duplicateGroups);
+        
+        // Ensure each group is an array with at least 2 projects that have title and path
+        const validGroups = projectsResult.duplicateGroups.filter(group => 
+          Array.isArray(group) && group.length >= 2 && group.every(p => p && typeof p === 'object' && p.title)
+        );
+        
+        console.log(`After validation: ${validGroups.length} valid duplicate groups (out of ${projectsResult.duplicateGroups.length})`);
+        duplicateGroups = validGroups;
+        
+        if (duplicatesCount) {
+          duplicatesCount.textContent = duplicateGroups.length;
+        } else {
+          console.error('duplicatesCount element not found');
+        }
+        
+        // Make sure duplicate review container exists
+        if (!duplicateReviewContainer) {
+          console.error('Duplicate review container not found');
+          showNotification('UI Error: Duplicate review container not found', 'error');
+          return;
+        }
+        
+        // Ensure the review container is visible
+        if (duplicateReviewContainer) {
+          duplicateReviewContainer.style.display = 'block';
+        } else {
+          console.error('duplicateReviewContainer element not found');
+          showNotification('UI Error: Duplicate review container not found', 'error');
+          return;
+        }
+        
+        // Extra validation to ensure duplicateGroups is an array and not empty
+        if (!duplicateGroups || !Array.isArray(duplicateGroups) || duplicateGroups.length === 0) {
+          console.log('No valid duplicate groups found');
+          return;
+        }
+        
+        // Show the duplicate review container
+        console.log('Showing duplicate review container...');
+        
+        // Display the first duplicate group or a message if no duplicates were found
+        currentDuplicateGroupIndex = 0;
+        try {
+          displayDuplicateGroup(currentDuplicateGroupIndex);
+          
+          // Only show success notification if we actually found duplicates
+          if (duplicateGroups.length > 0) {
+            showNotification(`Found ${duplicateGroups.length} potential duplicate groups`, 'success');
+          }
+        } catch (displayError) {
+          console.error('Error displaying duplicate group:', displayError);
+          showNotification('Error showing duplicate groups: ' + (displayError.message || 'Unknown error'), 'error');
+          return;
+        }
+      } else {
+        console.log('No duplicate groups found or error in result:', projectsResult);
+        if (duplicatesCount) {
+          duplicatesCount.textContent = '0';
+        }
+        
+        // Hide duplicate review container if it exists
+        if (duplicateReviewContainer) {
+          duplicateReviewContainer.style.display = 'none';
+        }
+        
+        // Clear duplicate list if it exists
+        if (duplicateList) {
+          duplicateList.innerHTML = '';
+        }
+        
+        showNotification('No potential duplicates found', 'info');
+      }
+    } else {
+      const errorMessage = result && result.message ? result.message : 'Unknown error';
+      console.error('Failed to detect duplicates:', errorMessage);
+      showNotification(`Failed to detect duplicates: ${errorMessage}`, 'error');
+    }
+  } catch (error) {
+    // Hide loading state with null check
+    if (startDuplicateDetectionBtn) {
+      hideLoading(startDuplicateDetectionBtn);
+    }
+    console.error('Error starting duplicate detection:', error);
+    showNotification('Error starting duplicate detection: ' + (error.message || 'Unknown error'), 'error');
+  }
+}
+
+/**
+ * Display a duplicate group for review
+ * @param {number} groupIndex - Index of the duplicate group to display
+ */
+function displayDuplicateGroup(groupIndex) {
+  try {
+    console.log(`Displaying duplicate group at index ${groupIndex}`);
+    console.log('Duplicate groups array:', duplicateGroups);
+    
+    if (!duplicateGroups || !Array.isArray(duplicateGroups) || duplicateGroups.length === 0) {
+      console.log('No duplicate groups to display or empty array');
+      
+      // Clear the duplicate list and show a message instead of an error
+      if (duplicateList) {
+        duplicateList.innerHTML = `
+          <div class="p-6 text-center">
+            <h3 class="text-lg font-medium mb-2">No Duplicate Projects Found</h3>
+            <p class="text-secondary-500 dark:text-secondary-400 mb-4">
+              No potential duplicate projects were detected in your active projects.
+            </p>
+            <p class="text-sm">
+              This could be because:
+              <ul class="list-disc pl-5 mt-2 text-left">
+                <li>You don't have enough projects (need at least 2)</li>
+                <li>Your project titles are sufficiently different</li>
+                <li>The similarity threshold wasn't met</li>
+              </ul>
+            </p>
+          </div>
+        `;
+        duplicateList.style.display = 'block';
+      }
+      
+      // Hide the action buttons since there's nothing to merge
+      const actionButtons = document.getElementById('duplicate-action-buttons');
+      if (actionButtons) {
+        actionButtons.style.display = 'none';
+      }
+      
+      return;
+    }
+    
+    // Ensure we're on the duplicates tab
+    try {
+      switchTab('duplicates');
+    } catch (tabError) {
+      console.error('Error switching to duplicates tab:', tabError);
+    }
+    
+    // Safely get the current group
+    console.log(`Accessing group at index ${groupIndex} from ${duplicateGroups.length} groups`);
+    console.log('Duplicate groups:', duplicateGroups);
+    
+    // Extra validation to ensure duplicateGroups is an array and not empty
+    if (!duplicateGroups || !Array.isArray(duplicateGroups) || duplicateGroups.length === 0) {
+      console.error('duplicateGroups is invalid:', duplicateGroups);
+      showNotification('Error: Invalid duplicate groups data', 'error');
+      return;
+    }
+    
+    // Ensure the index is valid
+    if (groupIndex < 0 || groupIndex >= duplicateGroups.length) {
+      console.error(`Invalid group index: ${groupIndex}, valid range is 0-${duplicateGroups.length-1}`);
+      showNotification('Error: Invalid group index', 'error');
+      return;
+    }
+    
+    const group = duplicateGroups[groupIndex];
+    if (!group || !Array.isArray(group) || group.length === 0) {
+      console.error('Invalid duplicate group:', group);
+      showNotification('Error: Invalid duplicate group data', 'error');
+      return;
+    }
+    
+    console.log(`Group ${groupIndex} contains ${group.length} projects`);
+    group.forEach((project, idx) => {
+      console.log(`  Project ${idx+1}: ${project.title || 'Untitled'}`);
+    });
+    
+    console.log('Current group:', group);
+    
+    if (!duplicateList) {
+      console.error('duplicateList element not found');
+      showNotification('UI Error: Duplicate list element not found', 'error');
+      return;
+    }
+    
+    // Make sure duplicate list is visible
+    duplicateList.style.display = 'block';
+    try {
+      duplicateList.innerHTML = '';
+    } catch (clearError) {
+      console.error('Error clearing duplicate list:', clearError);
+    }
+    
+    try {
+      // Create header with group info
+      const header = document.createElement('div');
+      header.className = 'mb-4 pb-2 border-b border-secondary-200 dark:border-secondary-700';
+      header.innerHTML = `
+        <h3 class="text-lg font-medium">Group ${groupIndex + 1} of ${duplicateGroups.length}</h3>
+        <p class="text-secondary-500 dark:text-secondary-400">Select projects to merge or skip this group</p>
+      `;
+      duplicateList.appendChild(header);
+      
+      // Create project cards for each project in the group
+      group.forEach((project, index) => {
+        if (!project) {
+          console.error(`Null or undefined project at index ${index}`);
+          return; // Skip this project
+        }
+        
+        console.log(`Creating card for project ${index}:`, project);
+        
+        const projectCard = document.createElement('div');
+        projectCard.className = 'project-card mb-4 p-4 border border-secondary-200 dark:border-secondary-700 rounded-lg';
+        
+        // Create checkbox for selection
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `project-${groupIndex}-${index}`;
+        checkbox.className = 'mr-2 duplicate-project-checkbox';
+        checkbox.checked = true; // Default to selected
+        
+        // Safely set data attributes
+        if (project.id) checkbox.dataset.projectId = project.id;
+        if (project.path) checkbox.dataset.projectPath = project.path;
+        
+        // Create label with project title
+        const label = document.createElement('label');
+        label.htmlFor = `project-${groupIndex}-${index}`;
+        label.className = 'font-medium cursor-pointer';
+        label.textContent = project.title || 'Untitled';
+        
+        // Create header with checkbox and title
+        const projectHeader = document.createElement('div');
+        projectHeader.className = 'flex items-center mb-2';
+        projectHeader.appendChild(checkbox);
+        projectHeader.appendChild(label);
+        
+        // Create end state section (if available)
+        if (project.endState) {
+          const endStateHeader = document.createElement('div');
+          endStateHeader.className = 'font-semibold text-sm text-green-700 dark:text-green-400 mt-3 mb-1';
+          endStateHeader.textContent = 'End State / Goal:';
+          
+          const endStateContent = document.createElement('div');
+          endStateContent.className = 'text-sm text-green-800 dark:text-green-300 bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800';
+          endStateContent.textContent = project.endState;
+          
+          projectCard.appendChild(endStateHeader);
+          projectCard.appendChild(endStateContent);
+        }
+        
+        // Create content preview
+        const contentHeader = document.createElement('div');
+        contentHeader.className = 'font-semibold text-sm text-secondary-700 dark:text-secondary-400 mt-3 mb-1';
+        contentHeader.textContent = 'Content:';
+        
+        const contentPreview = document.createElement('div');
+        contentPreview.className = 'text-sm text-secondary-600 dark:text-secondary-400 mt-1 max-h-[150px] overflow-y-auto p-2 bg-gray-50 dark:bg-gray-800 rounded';
+        contentPreview.textContent = project.content || 'No content';
+        
+        // Create metadata section
+        const metadata = document.createElement('div');
+        metadata.className = 'text-xs text-secondary-500 dark:text-secondary-400 mt-2 flex flex-wrap gap-2';
+        metadata.innerHTML = `
+          <span>Status: ${project.status || 'Unknown'}</span>
+          <span>Last Modified: ${project.lastModified ? new Date(project.lastModified).toLocaleString() : 'Unknown'}</span>
+        `;
+        
+        // Assemble project card
+        projectCard.appendChild(projectHeader);
+        projectCard.appendChild(contentHeader);
+        projectCard.appendChild(contentPreview);
+        projectCard.appendChild(metadata);
+        
+        duplicateList.appendChild(projectCard);
+      });
+      
+      // Update merge button state
+      const mergeBtn = safeGetElement('merge-duplicates-btn');
+      if (mergeBtn) {
+        mergeBtn.disabled = false;
+      }
+      
+      console.log('Finished displaying duplicate group');
+    } catch (renderError) {
+      console.error('Error rendering duplicate group:', renderError);
+      showNotification('Error rendering duplicate group: ' + renderError.message, 'error');
+    }
+  } catch (error) {
+    console.error('Fatal error in displayDuplicateGroup:', error);
+    showNotification('Error displaying duplicate data: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Merge selected duplicate projects
+ */
+async function mergeDuplicates() {
+  try {
+    const selectedCheckboxes = document.querySelectorAll('.duplicate-project-checkbox:checked');
+    console.log('Selected checkboxes:', selectedCheckboxes.length);
+    
+    if (selectedCheckboxes.length < 2) {
+      showNotification('Please select at least 2 projects to merge', 'warning');
+      return;
+    }
+    
+    // Try to get the project paths first, fall back to project IDs if not available
+    let selectedProjects = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.projectPath || checkbox.dataset.projectId);
+    
+    console.log('Selected projects to merge:', selectedProjects);
+    
+    if (selectedProjects.length < 2) {
+      showNotification('Project identification failed, please try again', 'error');
+      return;
+    }
+    
+    // Confirm with the user
+    if (!confirm(`Are you sure you want to merge ${selectedProjects.length} projects? This action cannot be undone.`)) {
+      return;
+    }
+    
+    showLoading(mergeDuplicatesBtn);
+    
+    // Call the IPC method to merge the projects
+    const result = await window.api.mergeProjects(selectedProjects);
+    
+    console.log('Merge result:', result);
+    
+    hideLoading(mergeDuplicatesBtn);
+    
+    if (result && result.success) {
+      // Move to the next duplicate group
+      currentDuplicateGroupIndex++;
+      
+      if (currentDuplicateGroupIndex < duplicateGroups.length) {
+        displayDuplicateGroup(currentDuplicateGroupIndex);
+        showNotification('Projects merged successfully', 'success');
+      } else {
+        endDuplicateReview();
+        showNotification('All duplicate groups processed', 'success');
+      }
+      
+      // Reload projects to reflect changes
+      loadProjects();
+    } else {
+      const errorMessage = result && result.message ? result.message : 'Unknown error';
+      showNotification(`Failed to merge projects: ${errorMessage}`, 'error');
+    }
+  } catch (error) {
+    hideLoading(mergeDuplicatesBtn);
+    console.error('Error merging duplicates:', error);
+    showNotification(`Error merging duplicates: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * Skip the current duplicate group
+ */
+function skipDuplicate() {
+  try {
+    console.log('Skip button clicked, current index:', currentDuplicateGroupIndex);
+    
+    // Increment the index with a safety check
+    currentDuplicateGroupIndex++;
+    console.log('New index after incrementing:', currentDuplicateGroupIndex);
+    
+    // Add loading state to the button
+    const skipBtn = document.getElementById('skip-duplicate-btn');
+    if (skipBtn) {
+      showLoading(skipBtn);
+    }
+    
+    // Check if there are more groups to display
+    if (duplicateGroups && Array.isArray(duplicateGroups) && currentDuplicateGroupIndex < duplicateGroups.length) {
+      console.log(`Moving to next group at index ${currentDuplicateGroupIndex} of ${duplicateGroups.length}`);
+      
+      // Display the next group
+      try {
+        displayDuplicateGroup(currentDuplicateGroupIndex);
+        showNotification('Skipped to next duplicate group', 'info');
+      } catch(displayError) {
+        console.error('Error displaying next group:', displayError);
+        showNotification('Error displaying next group: ' + displayError.message, 'error');
+      }
+    } else {
+      console.log('No more duplicate groups to display');
+      endDuplicateReview();
+      showNotification('All duplicate groups processed', 'success');
+    }
+    
+    // Reset the button state
+    if (skipBtn) {
+      hideLoading(skipBtn);
+    }
+  } catch (error) {
+    console.error('Error in skipDuplicate function:', error);
+    showNotification('Error skipping to next group: ' + error.message, 'error');
+    
+    // Reset the button state
+    const skipBtn = document.getElementById('skip-duplicate-btn');
+    if (skipBtn) {
+      hideLoading(skipBtn);
+    }
+  }
+}
+
+/**
+ * End the duplicate review process
+ */
+function endDuplicateReview() {
+  duplicateReviewContainer.classList.add('hidden');
+  duplicateList.innerHTML = '';
+  currentDuplicateGroupIndex = 0;
+  duplicateGroups = [];
+}
+
+/**
+ * Show loading state on a button
+ * @param {HTMLElement} button - Button element to show loading state on
+ */
+function showLoading(button) {
+  if (!button) {
+    console.error('Cannot show loading: button is null or undefined');
+    return;
+  }
+  
+  try {
+    // Store original text for later restoration
+    if (!button.dataset.originalText) {
+      button.dataset.originalText = button.textContent || button.innerText || '';
+    }
+    
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span> Processing...';
+  } catch (error) {
+    console.error('Error showing loading state:', error);
+  }
+}
+
+/**
+ * Hide loading state on a button
+ * @param {HTMLElement} button - Button element to hide loading state on
+ */
+function hideLoading(button) {
+  if (!button) {
+    console.error('Cannot hide loading: button is null or undefined');
+    return;
+  }
+  
+  try {
+    button.disabled = false;
+    
+    // Try to use stored original text if available
+    if (button.dataset.originalText) {
+      button.textContent = button.dataset.originalText;
+      return;
+    }
+    
+    // Fallback to predefined text based on button ID
+    switch (button.id) {
+      case 'start-duplicate-detection-btn':
+        button.textContent = 'Start Duplicate Detection';
+        break;
+      case 'merge-duplicates-btn':
+        button.textContent = 'Merge Projects';
+        break;
+      case 'skip-duplicate-btn':
+        button.textContent = 'Skip';
+        break;
+      case 'end-duplicate-review-btn':
+        button.textContent = 'Cancel';
+        break;
+      default:
+        button.textContent = 'Process';
+    }
+  } catch (error) {
+    console.error('Error hiding loading state:', error);
+  }
+}
+
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
 
@@ -1064,3 +1817,293 @@ window.appFunctions = {
   toggleTheme,
   switchTab
 };
+
+/**
+ * Start the project review process
+ */
+async function startProjectReview() {
+  try {
+    console.log('Starting project review...');
+    
+    // Show loading state
+    showLoading(startReviewBtn);
+    
+    // Switch to the review tab
+    switchTab('review');
+    
+    // Get active projects
+    const projects = await window.api.getAllProjects();
+    
+    if (!projects || !projects.success) {
+      console.error('Failed to get projects for review:', projects ? projects.message : 'Unknown error');
+      showNotification('Failed to load projects for review', 'error');
+      hideLoading(startReviewBtn);
+      return;
+    }
+    
+    // Filter for active projects only
+    activeProjectsForReview = projects.projects.active || [];
+    console.log(`Loaded ${activeProjectsForReview.length} active projects for review`);
+    
+    // Update UI
+    if (reviewTotal) reviewTotal.textContent = activeProjectsForReview.length;
+    if (reviewCount) reviewCount.textContent = '0';
+    
+    // Reset review index
+    currentReviewIndex = 0;
+    reviewInProgress = true;
+    
+    // Update button states
+    if (startReviewBtn) startReviewBtn.disabled = true;
+    if (nextReviewBtn) nextReviewBtn.disabled = false;
+    
+    // Show the first project
+    if (activeProjectsForReview.length > 0) {
+      showProjectForReview(currentReviewIndex);
+      showNotification('Review started. Use keyboard shortcuts (Y/A/S/W) to process projects', 'info');
+    } else {
+      if (reviewProjectTitle) reviewProjectTitle.textContent = 'No active projects to review';
+      if (reviewProjectContent) reviewProjectContent.textContent = '';
+      showNotification('No active projects to review', 'info');
+      endProjectReview();
+    }
+    
+    hideLoading(startReviewBtn);
+  } catch (error) {
+    console.error('Error starting project review:', error);
+    showNotification('Error starting project review: ' + (error.message || 'Unknown error'), 'error');
+    hideLoading(startReviewBtn);
+  }
+}
+
+/**
+ * Show a project for review
+ * @param {number} index - Index of the project to show
+ */
+function showProjectForReview(index) {
+  try {
+    if (!activeProjectsForReview || index >= activeProjectsForReview.length) {
+      console.log('No more projects to review');
+      endProjectReview();
+      return;
+    }
+    
+    const project = activeProjectsForReview[index];
+    console.log(`Showing project ${index + 1}/${activeProjectsForReview.length} for review:`, project.title);
+    
+    // Update UI
+    if (reviewProjectTitle) reviewProjectTitle.textContent = project.title || 'Untitled Project';
+    if (reviewProjectContent) reviewProjectContent.textContent = project.content || 'No content';
+    if (reviewCount) reviewCount.textContent = index + 1;
+  } catch (error) {
+    console.error('Error showing project for review:', error);
+    showNotification('Error showing project: ' + (error.message || 'Unknown error'), 'error');
+  }
+}
+
+/**
+ * Show the next project for review
+ */
+function showNextProject() {
+  currentReviewIndex++;
+  
+  if (currentReviewIndex >= activeProjectsForReview.length) {
+    console.log('Review completed');
+    showNotification('Review completed!', 'success');
+    endProjectReview();
+    return;
+  }
+  
+  showProjectForReview(currentReviewIndex);
+}
+
+/**
+ * Handle keyboard shortcuts for project review
+ * @param {KeyboardEvent} event - Keyboard event
+ */
+function handleReviewKeypress(event) {
+  // Only process if review is in progress and we're on the review tab
+  if (!reviewInProgress || getCurrentTab() !== 'review') {
+    return;
+  }
+  
+  const key = event.key.toLowerCase();
+  const currentProject = activeProjectsForReview[currentReviewIndex];
+  
+  if (!currentProject) {
+    return;
+  }
+  
+  console.log(`Review keypress: ${key}`);
+  
+  switch (key) {
+    case 'y': // Keep in active
+      console.log('Keeping project in active');
+      showNotification(`Project "${currentProject.title}" kept in Active`, 'success');
+      showNextProject();
+      break;
+      
+    case 'a': // Archive
+      console.log('Archiving project');
+      archiveProjectFromReview(currentProject);
+      break;
+      
+    case 's': // Move to Someday
+      console.log('Moving project to Someday');
+      moveProjectToSomeday(currentProject);
+      break;
+      
+    case 'w': // Move to Waiting
+      console.log('Moving project to Waiting');
+      promptForWaitingInput(currentProject);
+      break;
+  }
+}
+
+/**
+ * Archive a project from the review
+ * @param {Object} project - Project to archive
+ */
+async function archiveProjectFromReview(project) {
+  try {
+    const result = await window.api.updateProjectStatus({
+      projectPath: project.path,
+      isActive: false,
+      isWaiting: false,
+      targetStatus: 'archive'
+    });
+    
+    if (result && result.success) {
+      showNotification(`Project "${project.title}" archived`, 'success');
+      showNextProject();
+    } else {
+      console.error('Failed to archive project:', result ? result.message : 'Unknown error');
+      showNotification('Failed to archive project', 'error');
+    }
+  } catch (error) {
+    console.error('Error archiving project:', error);
+    showNotification('Error archiving project: ' + (error.message || 'Unknown error'), 'error');
+  }
+}
+
+/**
+ * Move a project to the Someday folder
+ * @param {Object} project - Project to move
+ */
+async function moveProjectToSomeday(project) {
+  try {
+    const result = await window.api.updateProjectStatus({
+      projectPath: project.path,
+      isActive: false,
+      isWaiting: false,
+      targetStatus: 'someday'
+    });
+    
+    if (result && result.success) {
+      showNotification(`Project "${project.title}" moved to Someday`, 'success');
+      showNextProject();
+    } else {
+      console.error('Failed to move project to Someday:', result ? result.message : 'Unknown error');
+      showNotification('Failed to move project to Someday', 'error');
+    }
+  } catch (error) {
+    console.error('Error moving project to Someday:', error);
+    showNotification('Error moving project to Someday: ' + (error.message || 'Unknown error'), 'error');
+  }
+}
+
+/**
+ * Prompt for waiting input and move project to Waiting
+ * @param {Object} project - Project to move
+ */
+function promptForWaitingInput(project) {
+  // Create a modal dialog to get waiting input
+  const modalHTML = `
+    <div id="waiting-input-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-secondary-800 rounded-lg shadow-xl p-6 max-w-md w-full">
+        <h3 class="text-xl font-medium mb-4">What are you waiting for?</h3>
+        <p class="mb-4 text-secondary-600 dark:text-secondary-400">Please specify what input or event you're waiting for:</p>
+        
+        <textarea id="waiting-input-text" class="w-full p-2 border border-secondary-300 dark:border-secondary-700 rounded-md bg-white dark:bg-secondary-900 mb-4" rows="3" placeholder="e.g., Feedback from client, response from vendor, etc."></textarea>
+        
+        <div class="flex justify-end gap-3">
+          <button id="waiting-cancel-btn" class="btn btn-secondary">Cancel</button>
+          <button id="waiting-save-btn" class="btn btn-primary">Save & Move</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Add the modal to the DOM
+  const modalContainer = document.createElement('div');
+  modalContainer.innerHTML = modalHTML;
+  document.body.appendChild(modalContainer.firstElementChild);
+  
+  // Get modal elements
+  const modal = document.getElementById('waiting-input-modal');
+  const inputText = document.getElementById('waiting-input-text');
+  const cancelBtn = document.getElementById('waiting-cancel-btn');
+  const saveBtn = document.getElementById('waiting-save-btn');
+  
+  // Focus the input
+  inputText.focus();
+  
+  // Add event listeners
+  cancelBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+  
+  saveBtn.addEventListener('click', async () => {
+    const waitingInput = inputText.value.trim();
+    
+    if (!waitingInput) {
+      showNotification('Please enter what you\'re waiting for', 'warning');
+      return;
+    }
+    
+    try {
+      const result = await window.api.updateProjectStatus({
+        projectPath: project.path,
+        isActive: false,
+        isWaiting: true,
+        waitingInput,
+        targetStatus: 'waiting'
+      });
+      
+      if (result && result.success) {
+        showNotification(`Project "${project.title}" moved to Waiting`, 'success');
+        document.body.removeChild(modal);
+        showNextProject();
+      } else {
+        console.error('Failed to move project to Waiting:', result ? result.message : 'Unknown error');
+        showNotification('Failed to move project to Waiting', 'error');
+      }
+    } catch (error) {
+      console.error('Error moving project to Waiting:', error);
+      showNotification('Error moving project to Waiting: ' + (error.message || 'Unknown error'), 'error');
+    }
+  });
+  
+  // Handle Escape key to cancel
+  inputText.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+    }
+  });
+}
+
+/**
+ * End the project review process
+ */
+function endProjectReview() {
+  reviewInProgress = false;
+  
+  // Reset UI
+  if (startReviewBtn) startReviewBtn.disabled = false;
+  if (nextReviewBtn) nextReviewBtn.disabled = true;
+  
+  if (reviewProjectTitle) reviewProjectTitle.textContent = 'Select Start to begin review';
+  if (reviewProjectContent) reviewProjectContent.textContent = '';
+  
+  console.log('Project review ended');
+}

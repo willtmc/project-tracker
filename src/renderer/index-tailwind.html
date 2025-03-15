@@ -48,7 +48,6 @@
           </svg>
         </button>
         <button id="refresh-btn" class="btn btn-primary">Refresh Projects</button>
-        <button id="remove-duplicates-btn" class="btn btn-primary">Remove Duplicates</button>
         <button id="sort-projects-btn" class="btn btn-primary">Sort Projects</button>
         <button id="formulate-projects-btn" class="btn btn-primary">Formulate Projects</button>
         <button id="view-report-btn" class="btn btn-primary">View Report</button>
@@ -56,10 +55,12 @@
     </header>
     
     <div class="flex border-b border-secondary-200 dark:border-secondary-700">
-      <button class="tab-btn active" data-tab="active">Active</button>
+      <button class="tab-btn" data-tab="active">Active</button>
       <button class="tab-btn" data-tab="waiting">Waiting</button>
       <button class="tab-btn" data-tab="someday">Someday</button>
       <button class="tab-btn" data-tab="archive">Archive</button>
+      <button class="tab-btn" data-tab="review">Review</button>
+      <button class="tab-btn" data-tab="duplicates">Duplicates</button>
     </div>
     
     <!-- Filter Bar -->
@@ -143,19 +144,40 @@
         <div id="archive-projects" class="projects-grid"></div>
       </div>
       
-      <!-- Report Tab -->
-      <div id="report-tab" class="tab-pane">
-        <div id="report-container" class="card p-6">
-          <div id="report-timestamp" class="text-secondary-500 dark:text-secondary-400 italic mb-6">No report generated yet</div>
-          
-          <div class="mb-8">
-            <h3 class="text-xl mb-4 pb-2 border-b border-secondary-200 dark:border-secondary-700">Project Statistics</h3>
-            <div id="project-stats" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      <!-- Duplicates Tab -->
+      <div id="duplicates-tab" class="tab-pane">
+        <div class="flex flex-wrap gap-5 mb-6">
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="duplicates-count">0</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Potential Duplicates</div>
           </div>
+        </div>
+        
+        <div class="card p-6 mb-6 border-l-4 border-l-primary-500">
+          <h3 class="text-xl mb-2">Duplicate Detection</h3>
+          <p class="mb-4">This tab helps you identify and manage potential duplicate projects in your workspace.</p>
           
-          <div class="mb-8">
-            <h3 class="text-xl mb-4 pb-2 border-b border-secondary-200 dark:border-secondary-700">Recent Activity</h3>
-            <div id="recent-activity"></div>
+          <div class="flex gap-3">
+            <button id="start-duplicate-detection-btn" class="btn btn-primary" onclick="console.log('Button clicked via HTML onclick'); startDuplicateDetection();">Start Duplicate Detection</button>
+          </div>
+        </div>
+        
+        <!-- Duplicate Review Container -->
+        <div id="duplicate-review-container" class="space-y-6 mt-8">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xl">Duplicate Project Review</h3>
+            <div class="flex gap-3">
+              <button id="merge-duplicates-btn" class="btn btn-primary">Merge Projects</button>
+              <button id="skip-duplicate-btn" class="btn btn-secondary">Skip</button>
+              <button id="end-duplicate-review-btn" class="btn btn-error">Cancel</button>
+            </div>
+          </div>
+          <div id="duplicate-list" class="card p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <!-- Duplicate projects will be displayed here -->
+            <div class="mb-4 pb-2 border-b border-secondary-200 dark:border-secondary-700">
+              <h3 class="text-lg font-medium">Test Duplicate Group</h3>
+              <p class="text-secondary-500 dark:text-secondary-400">This is a test duplicate group to verify the UI is working</p>
+            </div>
           </div>
         </div>
       </div>
@@ -204,21 +226,6 @@
               <button id="waiting-submit-btn" class="btn btn-primary">Save</button>
               <button id="waiting-cancel-btn" class="btn btn-secondary">Cancel</button>
             </div>
-          </div>
-        </div>
-        
-        <!-- Duplicate Review Container -->
-        <div id="duplicate-review-container" class="hidden space-y-6 mt-8">
-          <div class="flex justify-between items-center">
-            <h3 class="text-xl">Duplicate Project Review</h3>
-            <div class="flex gap-3">
-              <button id="merge-duplicates-btn" class="btn btn-primary">Merge Projects</button>
-              <button id="skip-duplicate-btn" class="btn btn-secondary">Skip</button>
-              <button id="end-duplicate-review-btn" class="btn btn-error">Cancel</button>
-            </div>
-          </div>
-          <div id="duplicate-list" class="card p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-            <!-- Duplicate projects will be displayed here -->
           </div>
         </div>
       </div>
@@ -317,9 +324,6 @@
   <!-- Renderer script -->
   <script src="renderer-tailwind.js"></script>
   
-  <!-- Debug script (load last) -->
-  <script src="debug.js"></script>
-
   <!-- Add this notification element -->
   <div id="sync-notification" class="hidden fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded shadow-lg">
     <div class="flex items-center">
@@ -361,4 +365,4 @@
     });
   </script>
 </body>
-</html> 
+</html>
