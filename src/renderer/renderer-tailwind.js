@@ -2,6 +2,95 @@
 // const { createProjectItem, createNotification } = require('./project-template-tailwind');
 // We'll get these functions from the global scope now
 
+// Add Chart.js script to the document if not already added
+if (!window.Chart) {
+  const chartScript = document.createElement('script');
+  chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+  document.head.appendChild(chartScript);
+}
+
+// Define the missing functions
+function createProjectItem(project, status) {
+  const projectItem = document.createElement('div');
+  projectItem.className = 'project-item bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-4 transition-all';
+  projectItem.dataset.id = project.id;
+  projectItem.dataset.status = status;
+
+  const title = document.createElement('h3');
+  title.className = 'text-lg font-semibold mb-2 text-gray-900 dark:text-white';
+  title.textContent = project.title;
+
+  const description = document.createElement('p');
+  description.className = 'text-sm text-gray-600 dark:text-gray-300 mb-3';
+  description.textContent = project.description || 'No description';
+
+  const footer = document.createElement('div');
+  footer.className = 'flex justify-between items-center text-xs text-gray-500 dark:text-gray-400';
+
+  const date = document.createElement('span');
+  date.textContent = new Date(project.createdAt).toLocaleDateString();
+
+  const actions = document.createElement('div');
+  actions.className = 'flex space-x-2';
+
+  const viewBtn = document.createElement('button');
+  viewBtn.className = 'text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300';
+  viewBtn.textContent = 'View';
+  viewBtn.addEventListener('click', () => openProjectModal(project));
+
+  actions.appendChild(viewBtn);
+  footer.appendChild(date);
+  footer.appendChild(actions);
+
+  projectItem.appendChild(title);
+  projectItem.appendChild(description);
+  projectItem.appendChild(footer);
+
+  return projectItem;
+}
+
+function createNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification ${type} p-4 mb-4 rounded-lg shadow-md transition-all`;
+  
+  // Set background color based on type
+  if (type === 'success') {
+    notification.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-800', 'dark:text-green-100');
+  } else if (type === 'error') {
+    notification.classList.add('bg-red-100', 'text-red-800', 'dark:bg-red-800', 'dark:text-red-100');
+  } else if (type === 'warning') {
+    notification.classList.add('bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-800', 'dark:text-yellow-100');
+  } else {
+    notification.classList.add('bg-blue-100', 'text-blue-800', 'dark:bg-blue-800', 'dark:text-blue-100');
+  }
+
+  const content = document.createElement('div');
+  content.className = 'flex justify-between items-center';
+
+  const messageEl = document.createElement('p');
+  messageEl.textContent = message;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'ml-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.addEventListener('click', () => {
+    notification.remove();
+  });
+
+  content.appendChild(messageEl);
+  content.appendChild(closeBtn);
+  notification.appendChild(content);
+
+  // Auto-remove after 5 seconds for success and info notifications
+  if (type === 'success' || type === 'info') {
+    setTimeout(() => {
+      notification.remove();
+    }, 5000);
+  }
+
+  return notification;
+}
+
 // DOM Elements
 const projectGrids = {
   active: document.getElementById('active-projects'),
@@ -25,6 +114,29 @@ const sortProjectsBtn = document.getElementById('sort-projects-btn');
 const formulateProjectsBtn = document.getElementById('formulate-projects-btn');
 const viewReportBtn = document.getElementById('view-report-btn');
 const notificationContainer = document.getElementById('notification-container');
+
+// Update elements
+const checkUpdatesBtn = document.getElementById('check-updates-btn');
+const updateModal = document.getElementById('update-modal');
+const closeUpdateModalBtn = document.getElementById('close-update-modal-btn');
+const updateVersion = document.getElementById('update-version');
+const updateNotes = document.getElementById('update-notes');
+const downloadUpdateBtn = document.getElementById('download-update-btn');
+const skipUpdateBtn = document.getElementById('skip-update-btn');
+const downloadProgressBar = document.getElementById('download-progress-bar');
+const downloadProgressText = document.getElementById('download-progress-text');
+const restartAppBtn = document.getElementById('restart-app-btn');
+const restartLaterBtn = document.getElementById('restart-later-btn');
+const closeNoUpdateBtn = document.getElementById('close-no-update-btn');
+const closeErrorBtn = document.getElementById('close-error-btn');
+const updateErrorMessage = document.getElementById('update-error-message');
+
+// Update content containers
+const updateAvailableContent = document.getElementById('update-available-content');
+const updateDownloadingContent = document.getElementById('update-downloading-content');
+const updateDownloadedContent = document.getElementById('update-downloaded-content');
+const updateNotAvailableContent = document.getElementById('update-not-available-content');
+const updateErrorContent = document.getElementById('update-error-content');
 
 // Project Modal Elements
 const projectModal = document.getElementById('project-modal');
@@ -191,6 +303,9 @@ function init() {
     } else {
       console.error('Duplicates tab button not found');
     }
+
+    // Initialize analytics tab functionality
+    initAnalytics();
 
     // Load projects immediately
     console.log('Loading projects on startup...');
@@ -375,8 +490,8 @@ function setupEventListeners() {
 
   if (skipDuplicateBtn) {
     console.log('Setting up click handler for skipDuplicateBtn');
-    skipDuplicateBtn.addEventListener('click', function () {
-      console.log('Skip button clicked directly');
+    skipDuplicateBtn.addEventListener('click', function(event) {
+      console.log('Skip button clicked directly', event);
       skipDuplicate();
     });
   } else {
@@ -384,7 +499,11 @@ function setupEventListeners() {
   }
 
   if (endDuplicateReviewBtn) {
-    endDuplicateReviewBtn.addEventListener('click', endDuplicateReview);
+    console.log('Setting up click handler for endDuplicateReviewBtn');
+    endDuplicateReviewBtn.addEventListener('click', function(event) {
+      console.log('Cancel button clicked directly', event);
+      endDuplicateReview();
+    });
   } else {
     console.error('endDuplicateReviewBtn not found during event setup');
   }
@@ -429,6 +548,61 @@ function setupEventListeners() {
       handleReviewKeypress(e);
     }
   });
+
+  // Auto-update event listeners
+  if (checkUpdatesBtn) {
+    checkUpdatesBtn.addEventListener('click', () => {
+      checkForUpdates();
+    });
+  }
+  
+  if (closeUpdateModalBtn) {
+    closeUpdateModalBtn.addEventListener('click', () => {
+      updateModal.classList.add('hidden');
+    });
+  }
+  
+  if (downloadUpdateBtn) {
+    downloadUpdateBtn.addEventListener('click', () => {
+      hideAllUpdateContents();
+      updateDownloadingContent.classList.remove('hidden');
+      // The download will happen automatically in the main process
+    });
+  }
+  
+  if (skipUpdateBtn) {
+    skipUpdateBtn.addEventListener('click', () => {
+      updateModal.classList.add('hidden');
+    });
+  }
+  
+  if (restartAppBtn) {
+    restartAppBtn.addEventListener('click', () => {
+      // Send IPC to main process to restart and install
+      window.api.ipcRenderer.send('restart-app');
+    });
+  }
+  
+  if (restartLaterBtn) {
+    restartLaterBtn.addEventListener('click', () => {
+      updateModal.classList.add('hidden');
+    });
+  }
+  
+  if (closeNoUpdateBtn) {
+    closeNoUpdateBtn.addEventListener('click', () => {
+      updateModal.classList.add('hidden');
+    });
+  }
+  
+  if (closeErrorBtn) {
+    closeErrorBtn.addEventListener('click', () => {
+      updateModal.classList.add('hidden');
+    });
+  }
+  
+  // Set up auto-update status listener
+  setupUpdateStatusListener();
 }
 
 // Initialize view toggle
@@ -533,6 +707,14 @@ function switchTab(tabId) {
         } else {
           console.error('duplicateReviewContainer not found');
         }
+      } else if (tabId === 'review') {
+        // Initialize review mode if not already in progress
+        if (!reviewInProgress && startReviewBtn) {
+          startReviewBtn.classList.remove('hidden');
+        }
+      } else if (tabId === 'analytics') {
+        // Load analytics data when the tab is selected
+        loadAnalyticsData();
       }
     } else {
       // Hide all other tab panes
@@ -551,75 +733,62 @@ function getCurrentTab() {
 }
 
 // Load projects from storage
-function loadProjects() {
-  console.log('Loading projects...');
-
+async function loadProjects() {
   try {
-    // Check if window.api exists
-    if (!window.api || !window.api.getProjects) {
-      console.error(
-        'window.api.getProjects is not available. Context isolation might be enabled but preload script is not working correctly.'
-      );
-      console.log('Falling back to mock data...');
+    console.log('Loading projects...');
+    let projects;
 
-      // Use mock data as a fallback
-      const mockData = getMockProjects();
-      projects = mockData;
-      renderProjects();
-      updateCounters();
-      showNotification('Projects loaded from mock data', 'warning');
-      return;
-    }
+    try {
+      // Try to get projects from the main process
+      projects = await window.api.getProjects();
+      
+      // Enhanced logging to debug data structure
+      console.log('Projects data type:', typeof projects);
+      console.log('Is projects an array?', Array.isArray(projects));
+      console.log('Projects structure:', JSON.stringify(projects, null, 2));
+      
+      // Check if we have data and it's in the expected format
+      if (!projects) {
+        throw new Error('No projects data received');
+      }
 
-    // Always use the IPC API to get projects from the main process
-    console.log('Calling window.api.getProjects()...');
-    window.api
-      .getProjects()
-      .then(data => {
-        console.log('Projects loaded successfully from IPC');
-        console.log('Projects data type:', typeof data);
-        console.log('Projects data is array:', Array.isArray(data));
-
-        if (typeof data === 'object' && !Array.isArray(data)) {
-          // Projects is an object with status keys (from ProjectManager)
-          console.log('Rendering projects from ProjectManager format');
-
-          // Ensure projects is properly structured
-          projects = data;
-
-          // Force a synchronization if needed
-          if (window.api.synchronizeProjects) {
-            console.log('Forcing synchronization to ensure UI consistency...');
-            window.api.synchronizeProjects().catch(err => {
-              console.error('Error during forced synchronization:', err);
+      // Check if projects is an object with status keys (active, waiting, etc.)
+      if (typeof projects === 'object' && !Array.isArray(projects)) {
+        console.log('Projects data is an object with status keys');
+        console.log('Status keys:', Object.keys(projects));
+        
+        // Verify we have arrays for each status
+        Object.keys(projects).forEach(status => {
+          console.log(`${status} projects:`, Array.isArray(projects[status]) ? projects[status].length : 'Not an array');
+          
+          // Ensure each project in the array has an id
+          if (Array.isArray(projects[status])) {
+            projects[status].forEach(project => {
+              if (!project.id) {
+                console.warn(`Project missing ID, using filename as fallback:`, project.filename);
+                project.id = project.filename;
+              }
             });
           }
-        }
-        renderProjects();
-        updateCounters();
-        showNotification('Projects loaded successfully', 'success');
-      })
-      .catch(error => {
-        console.error('Error loading projects:', error);
-        showNotification('Failed to load projects', 'error');
+        });
+        
+        // Render projects by status
+        renderProjects(projects);
+        return;
+      } else {
+        console.warn('Projects data is not in the expected format');
+      }
+    } catch (error) {
+      console.error('Error loading projects from main process:', error);
+      // Fall back to mock data
+      projects = getMockProjects();
+    }
 
-        // Fall back to mock data on error
-        const mockData = getMockProjects();
-        projects = mockData;
-        renderProjects();
-        updateCounters();
-        showNotification('Loaded mock data as fallback', 'warning');
-      });
+    // Render projects
+    renderProjects(projects);
   } catch (error) {
     console.error('Error in loadProjects:', error);
-    showNotification('Error loading projects', 'error');
-
-    // Fall back to mock data on error
-    const mockData = getMockProjects();
-    projects = mockData;
-    renderProjects();
-    updateCounters();
-    showNotification('Loaded mock data as fallback', 'warning');
+    showNotification('Failed to load projects. Please try again.', 'error');
   }
 }
 
@@ -731,165 +900,125 @@ function getMockProjects() {
 }
 
 // Render projects to their respective tabs
-function renderProjects() {
+function renderProjects(projectsData) {
   console.log('Rendering projects...');
 
   // Clear existing projects
-  Object.values(projectGrids).forEach(grid => {
-    if (grid) grid.innerHTML = '';
-  });
+  clearProjectContainers();
 
-  // Check if projects is an object with status keys or an array
-  if (projects && typeof projects === 'object' && !Array.isArray(projects)) {
-    // Projects is an object with status keys (from ProjectManager)
-    console.log('Rendering projects from ProjectManager format');
+  // If no projects data, show empty state
+  if (!projectsData) {
+    console.warn('No projects data to render');
+    showEmptyState();
+    return;
+  }
 
-    // Render each group
-    Object.entries(projects).forEach(([status, statusProjects]) => {
-      const grid = projectGrids[status];
-      if (!grid) return;
+  // Track counts for each status
+  const counts = {
+    active: 0,
+    waiting: 0,
+    someday: 0,
+    archive: 0,
+  };
 
-      if (!statusProjects || statusProjects.length === 0) {
-        grid.innerHTML = `<div class="text-center p-8 text-secondary-500 dark:text-secondary-400">No projects found</div>`;
+  // Check if projectsData is an object with status keys
+  if (typeof projectsData === 'object' && !Array.isArray(projectsData)) {
+    console.log('Rendering projects from categorized data structure');
+    
+    // Process each status category
+    Object.keys(projectsData).forEach(status => {
+      if (!Array.isArray(projectsData[status])) {
+        console.warn(`Projects for status ${status} is not an array`);
         return;
       }
-
-      // Filter and sort projects for this status
-      const filteredProjects = filterAndSortProjectsForStatus(statusProjects);
-
-      // Log the first project to help with debugging
-      if (filteredProjects.length > 0) {
-        console.log('Sample project:', filteredProjects[0]);
+      
+      const projectsForStatus = projectsData[status];
+      counts[status] = projectsForStatus.length;
+      
+      // Get the container for this status
+      const container = getContainerForStatus(status);
+      if (!container) {
+        console.warn(`No container found for status: ${status}`);
+        return;
       }
-
-      filteredProjects.forEach(project => {
+      
+      // Render each project in this status
+      projectsForStatus.forEach(project => {
         try {
-          // Ensure project has an id for DOM attributes
+          // Ensure project has an ID
           if (!project.id) {
-            project.id =
-              project.filename ||
-              `project-${Math.random().toString(36).substr(2, 9)}`;
+            project.id = project.filename || `project-${Math.random().toString(36).substr(2, 9)}`;
           }
-
-          // Create project item
-          const projectItem = createProjectItem(project, status);
-          grid.appendChild(projectItem);
+          
+          // Create and append project item
+          const projectItem = createProjectItem(project);
+          container.appendChild(projectItem);
         } catch (error) {
-          console.error('Error creating project item:', error, project);
+          console.error(`Error rendering project:`, project, error);
         }
       });
     });
   } else {
-    // Projects is an array (from mock data)
-    console.log('Rendering projects from array format');
+    console.warn('Projects data is not in the expected format, falling back to legacy format');
+    // Legacy format handling if needed
+  }
 
-    // Filter and sort projects
-    const filteredProjects = filterAndSortProjects();
+  // Update counters with the current counts
+  updateCounters(counts);
 
-    // Group projects by tab
-    const groupedProjects = {
-      active: filteredProjects.filter(p => p.status === 'active'),
-      waiting: filteredProjects.filter(p => p.status === 'waiting'),
-      someday: filteredProjects.filter(p => p.status === 'someday'),
-      archive: filteredProjects.filter(p => p.status === 'archive'),
-    };
-
-    // Render each group
-    Object.entries(groupedProjects).forEach(([tabId, tabProjects]) => {
-      const grid = projectGrids[tabId];
-      if (!grid) return;
-
-      if (tabProjects.length === 0) {
-        grid.innerHTML = `<div class="text-center p-8 text-secondary-500 dark:text-secondary-400">No projects found</div>`;
-        return;
-      }
-
-      tabProjects.forEach(project => {
-        try {
-          // Ensure project has an id for DOM attributes
-          if (!project.id) {
-            project.id =
-              project.filename ||
-              `project-${Math.random().toString(36).substr(2, 9)}`;
-          }
-
-          // Create project item
-          const projectItem = createProjectItem(project, tabId);
-          grid.appendChild(projectItem);
-        } catch (error) {
-          console.error('Error creating project item:', error, project);
-        }
-      });
-    });
+  // Show empty state if no projects were rendered
+  const totalProjects = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  if (totalProjects === 0) {
+    showEmptyState();
   }
 }
 
-// Filter and sort projects for a specific status
-function filterAndSortProjectsForStatus(statusProjects) {
-  if (!statusProjects) return [];
-
-  let result = [...statusProjects];
-
-  // Apply search filter - enhanced to search across more fields
-  if (currentFilter.search) {
-    const searchTerm = currentFilter.search.toLowerCase();
-    result = result.filter(project => {
-      // Check various fields for the search term
-      return (
-        // Title search
-        (project.title && project.title.toLowerCase().includes(searchTerm)) ||
-        // Content search
-        (project.content &&
-          project.content.toLowerCase().includes(searchTerm)) ||
-        // End state search
-        (project.endState &&
-          project.endState.toLowerCase().includes(searchTerm)) ||
-        // Waiting input search
-        (project.waitingInput &&
-          project.waitingInput.toLowerCase().includes(searchTerm)) ||
-        // Filename search
-        (project.filename &&
-          project.filename.toLowerCase().includes(searchTerm)) ||
-        // Task content search (if tasks are available)
-        (project.tasks &&
-          Array.isArray(project.tasks) &&
-          project.tasks.some(
-            task => task.title && task.title.toLowerCase().includes(searchTerm)
-          ))
-      );
-    });
+// Helper function to get the appropriate container for a status
+function getContainerForStatus(status) {
+  switch (status) {
+    case 'active':
+      return document.getElementById('active-projects-container');
+    case 'waiting':
+      return document.getElementById('waiting-projects-container');
+    case 'someday':
+      return document.getElementById('someday-projects-container');
+    case 'archive':
+      return document.getElementById('archive-projects-container');
+    default:
+      console.warn(`Unknown status: ${status}`);
+      return null;
   }
+}
 
-  // Apply status filter
-  if (currentFilter.status !== 'all') {
-    const isWellFormulated = currentFilter.status === 'well-formulated';
-    result = result.filter(project => {
-      const hasEndState = project.endState && project.endState.trim() !== '';
-      return isWellFormulated ? hasEndState : !hasEndState;
-    });
+// Helper function to show empty state
+function showEmptyState() {
+  const emptyState = document.getElementById('empty-state');
+  if (emptyState) {
+    emptyState.classList.remove('hidden');
   }
+}
 
-  // Apply sorting
-  result.sort((a, b) => {
-    switch (currentFilter.sort) {
-      case 'modified-desc':
-        return new Date(b.lastModified) - new Date(a.lastModified);
-      case 'modified-asc':
-        return new Date(a.lastModified) - new Date(b.lastModified);
-      case 'title-asc':
-        return a.title.localeCompare(b.title);
-      case 'title-desc':
-        return b.title.localeCompare(a.title);
-      case 'progress-desc':
-        return getProjectProgress(b) - getProjectProgress(a);
-      case 'progress-asc':
-        return getProjectProgress(a) - getProjectProgress(b);
-      default:
-        return 0;
+// Helper function to clear all project containers
+function clearProjectContainers() {
+  const containers = [
+    'active-projects-container',
+    'waiting-projects-container',
+    'someday-projects-container',
+    'archive-projects-container'
+  ];
+  
+  containers.forEach(id => {
+    const container = document.getElementById(id);
+    if (container) {
+      container.innerHTML = '';
     }
   });
-
-  return result;
+  
+  // Hide empty state
+  const emptyState = document.getElementById('empty-state');
+  if (emptyState) {
+    emptyState.classList.add('hidden');
+  }
 }
 
 // Filter and sort projects based on current filter
@@ -1297,6 +1426,12 @@ function showNotification(message, type = 'info') {
   }
 }
 
+// Display an error message to the user
+function displayErrorMessage(message) {
+  console.error('Error:', message);
+  showNotification(message, 'error');
+}
+
 // Check database connection
 function checkDatabaseConnection() {
   return new Promise(resolve => {
@@ -1454,7 +1589,10 @@ async function startDuplicateDetection() {
     }
   } catch (error) {
     console.error('Error in startDuplicateDetection:', error);
-    showNotification('Error: ' + error.message, 'error');
+    showNotification(
+      'Error: ' + error.message,
+      'error'
+    );
 
     if (startDuplicateDetectionBtn) {
       hideLoading(startDuplicateDetectionBtn);
@@ -1601,7 +1739,9 @@ function displayDuplicateGroup(groupIndex) {
         'mb-4 pb-2 border-b border-secondary-200 dark:border-secondary-700';
       header.innerHTML = `
         <h3 class="text-lg font-medium">Group ${groupIndex + 1} of ${duplicateGroups.length}</h3>
-        <p class="text-secondary-500 dark:text-secondary-400">Select projects to merge or skip this group</p>
+        <p class="text-secondary-500 dark:text-secondary-400 mb-4">
+          Select projects to merge or skip this group
+        </p>
       `;
       duplicateList.appendChild(header);
 
@@ -1723,6 +1863,90 @@ function displayDuplicateGroup(groupIndex) {
 }
 
 /**
+ * Skip the current duplicate group
+ */
+function skipDuplicate() {
+  try {
+    console.log(
+      'Skip button clicked, current index:',
+      currentDuplicateGroupIndex
+    );
+
+    // Add loading state to the button
+    const skipBtn = document.getElementById('skip-duplicate-btn');
+    if (skipBtn) {
+      showLoading(skipBtn);
+      console.log('Added loading state to skip button');
+    }
+
+    // Increment the index with a safety check
+    currentDuplicateGroupIndex++;
+    console.log('New index after incrementing:', currentDuplicateGroupIndex);
+
+    // Check if there are more groups to display
+    if (
+      duplicateGroups &&
+      Array.isArray(duplicateGroups) &&
+      currentDuplicateGroupIndex < duplicateGroups.length
+    ) {
+      console.log(
+        `Moving to next group at index ${currentDuplicateGroupIndex} of ${duplicateGroups.length}`
+      );
+
+      // Display the next group
+      try {
+        displayDuplicateGroup(currentDuplicateGroupIndex);
+        showNotification('Skipped to next duplicate group', 'info');
+        console.log('Successfully displayed next duplicate group');
+      } catch (displayError) {
+        console.error('Error displaying next group:', displayError);
+        showNotification(
+          'Error displaying next group: ' + displayError.message,
+          'error'
+        );
+        
+        // If there's an error displaying the group, try to move to the next one
+        if (currentDuplicateGroupIndex + 1 < duplicateGroups.length) {
+          console.log('Attempting to skip to the next group after error');
+          currentDuplicateGroupIndex++;
+          try {
+            displayDuplicateGroup(currentDuplicateGroupIndex);
+            console.log('Successfully displayed next group after error');
+          } catch (secondError) {
+            console.error('Error displaying second group attempt:', secondError);
+            endDuplicateReview();
+            showNotification('Multiple errors encountered. Review ended.', 'error');
+          }
+        } else {
+          console.log('No more groups to display after error, ending review');
+          endDuplicateReview();
+        }
+      }
+    } else {
+      console.log('No more duplicate groups to display');
+      endDuplicateReview();
+      showNotification('All duplicate groups processed', 'success');
+    }
+
+    // Reset the button state
+    if (skipBtn) {
+      hideLoading(skipBtn);
+      console.log('Removed loading state from skip button');
+    }
+  } catch (error) {
+    console.error('Error in skipDuplicate function:', error);
+    showNotification('Error skipping to next group: ' + error.message, 'error');
+
+    // Reset the button state
+    const skipBtn = document.getElementById('skip-duplicate-btn');
+    if (skipBtn) {
+      hideLoading(skipBtn);
+      console.log('Removed loading state from skip button after error');
+    }
+  }
+}
+
+/**
  * Merge selected duplicate projects
  */
 async function mergeDuplicates() {
@@ -1797,76 +2021,40 @@ async function mergeDuplicates() {
 }
 
 /**
- * Skip the current duplicate group
- */
-function skipDuplicate() {
-  try {
-    console.log(
-      'Skip button clicked, current index:',
-      currentDuplicateGroupIndex
-    );
-
-    // Increment the index with a safety check
-    currentDuplicateGroupIndex++;
-    console.log('New index after incrementing:', currentDuplicateGroupIndex);
-
-    // Add loading state to the button
-    const skipBtn = document.getElementById('skip-duplicate-btn');
-    if (skipBtn) {
-      showLoading(skipBtn);
-    }
-
-    // Check if there are more groups to display
-    if (
-      duplicateGroups &&
-      Array.isArray(duplicateGroups) &&
-      currentDuplicateGroupIndex < duplicateGroups.length
-    ) {
-      console.log(
-        `Moving to next group at index ${currentDuplicateGroupIndex} of ${duplicateGroups.length}`
-      );
-
-      // Display the next group
-      try {
-        displayDuplicateGroup(currentDuplicateGroupIndex);
-        showNotification('Skipped to next duplicate group', 'info');
-      } catch (displayError) {
-        console.error('Error displaying next group:', displayError);
-        showNotification(
-          'Error displaying next group: ' + displayError.message,
-          'error'
-        );
-      }
-    } else {
-      console.log('No more duplicate groups to display');
-      endDuplicateReview();
-      showNotification('All duplicate groups processed', 'success');
-    }
-
-    // Reset the button state
-    if (skipBtn) {
-      hideLoading(skipBtn);
-    }
-  } catch (error) {
-    console.error('Error in skipDuplicate function:', error);
-    showNotification('Error skipping to next group: ' + error.message, 'error');
-
-    // Reset the button state
-    const skipBtn = document.getElementById('skip-duplicate-btn');
-    if (skipBtn) {
-      hideLoading(skipBtn);
-    }
-  }
-}
-
-/**
  * End the duplicate review process
  */
 function endDuplicateReview() {
-  duplicateReviewContainer.classList.add('hidden');
-  duplicateList.innerHTML = '';
-  currentDuplicateGroupIndex = 0;
-  duplicateGroups = [];
+  try {
+    console.log('Ending duplicate review process');
+    
+    // Hide the duplicate review container
+    if (duplicateReviewContainer) {
+      // Remove both the hidden class and set display to none to ensure it's hidden
+      duplicateReviewContainer.classList.add('hidden');
+      duplicateReviewContainer.style.display = 'none';
+      console.log('Duplicate review container hidden');
+    } else {
+      console.error('duplicateReviewContainer not found');
+    }
+    
+    // Clear the duplicate list
+    if (duplicateList) {
+      duplicateList.innerHTML = '';
+      console.log('Duplicate list cleared');
+    } else {
+      console.error('duplicateList not found');
+    }
+    
+    // Reset the state
+    currentDuplicateGroupIndex = 0;
+    duplicateGroups = [];
+    console.log('Duplicate review state reset');
+    
+    showNotification('Duplicate review canceled', 'info');
+  } catch (error) {
+    console.error('Error in endDuplicateReview function:', error);
+    showNotification('Error canceling duplicate review: ' + error.message, 'error');
+  }
 }
 
 /**
@@ -1934,17 +2122,475 @@ function hideLoading(button) {
   }
 }
 
-// Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', init);
+// Function to initialize analytics tab functionality
+function initAnalytics() {
+  // Get analytics tab elements
+  const analyticsTabButtons = document.querySelectorAll('.analytics-tab-btn');
+  const analyticsTabContents = document.querySelectorAll('.analytics-tab-content');
+  const refreshLogsBtn = document.getElementById('refresh-logs-btn');
+  const loadMoreLogsBtn = document.getElementById('load-more-logs-btn');
+  const logTypeFilter = document.getElementById('log-type-filter');
+  const logLevelFilter = document.getElementById('log-level-filter');
+
+  // Add event listeners for analytics tab buttons
+  analyticsTabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tabId = button.getAttribute('data-analytics-tab');
+      
+      // Hide all tab contents
+      analyticsTabContents.forEach(content => {
+        content.classList.add('hidden');
+      });
+      
+      // Deactivate all tab buttons
+      analyticsTabButtons.forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Show the selected tab content
+      const tabContent = document.getElementById(`analytics-${tabId}-tab`);
+      if (tabContent) {
+        tabContent.classList.remove('hidden');
+      }
+      
+      // Activate the selected tab button
+      button.classList.add('active');
+      
+      // Load specific data based on the tab
+      if (tabId === 'logs') {
+        loadLogs();
+      }
+    });
+  });
+  
+  // Add event listener for refresh logs button
+  if (refreshLogsBtn) {
+    refreshLogsBtn.addEventListener('click', () => {
+      loadLogs(true);
+    });
+  }
+  
+  // Add event listener for load more logs button
+  if (loadMoreLogsBtn) {
+    loadMoreLogsBtn.addEventListener('click', () => {
+      const currentCount = document.querySelectorAll('#logs-container .log-entry').length;
+      loadLogs(false, currentCount + 50);
+    });
+  }
+  
+  // Add event listeners for log filters
+  if (logTypeFilter) {
+    logTypeFilter.addEventListener('change', () => {
+      loadLogs(true);
+    });
+  }
+  
+  if (logLevelFilter) {
+    logLevelFilter.addEventListener('change', () => {
+      loadLogs(true);
+    });
+  }
+}
+
+// Function to load analytics data
+async function loadAnalyticsData() {
+  try {
+    // Show loading state
+    document.getElementById('total-projects-count').textContent = '...';
+    document.getElementById('actions-count').textContent = '...';
+    document.getElementById('status-changes-list').innerHTML = '<div class="text-center text-secondary-500 dark:text-secondary-400 py-8">Loading status changes...</div>';
+    
+    // Get analytics data from the main process
+    const analyticsData = await window.api.getAnalyticsData();
+    
+    // Update project counts
+    const totalProjects = analyticsData.projectCounts.active + 
+                          analyticsData.projectCounts.waiting + 
+                          analyticsData.projectCounts.someday + 
+                          analyticsData.projectCounts.archive;
+    
+    document.getElementById('total-projects-count').textContent = totalProjects;
+    
+    // Update actions count
+    const totalActions = analyticsData.actionsPerDay.reduce((total, day) => total + day.count, 0);
+    document.getElementById('actions-count').textContent = totalActions;
+    
+    // Create project status chart
+    createProjectStatusChart(analyticsData.projectCounts);
+    
+    // Create activity chart
+    createActivityChart(analyticsData.actionsPerDay);
+    
+    // Render status changes
+    renderStatusChanges(analyticsData.statusChanges);
+    
+  } catch (error) {
+    console.error('Error loading analytics data:', error);
+    showNotification('Error loading analytics data: ' + error.message, 'error');
+  }
+}
+
+// Function to create project status chart
+function createProjectStatusChart(projectCounts) {
+  const ctx = document.getElementById('project-status-chart').getContext('2d');
+  
+  // Check if Chart.js is available
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js is not available. Unable to create project status chart.');
+    return;
+  }
+  
+  // Clear any existing chart
+  if (window.projectStatusChart) {
+    window.projectStatusChart.destroy();
+  }
+  
+  // Create the chart
+  window.projectStatusChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Active', 'Waiting', 'Someday', 'Archive'],
+      datasets: [{
+        data: [
+          projectCounts.active,
+          projectCounts.waiting,
+          projectCounts.someday,
+          projectCounts.archive
+        ],
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.7)',  // blue
+          'rgba(245, 158, 11, 0.7)',   // amber
+          'rgba(16, 185, 129, 0.7)',   // green
+          'rgba(107, 114, 128, 0.7)'   // gray
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+}
+
+// Function to create activity chart
+function createActivityChart(actionsPerDay) {
+  const ctx = document.getElementById('activity-chart').getContext('2d');
+  
+  // Check if Chart.js is available
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js is not available. Unable to create activity chart.');
+    return;
+  }
+  
+  // Clear any existing chart
+  if (window.activityChart) {
+    window.activityChart.destroy();
+  }
+  
+  // Format data for chart
+  const labels = [];
+  const data = [];
+  
+  // Sort by date
+  actionsPerDay.sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  // Get last 14 days
+  const today = new Date();
+  const twoWeeksAgo = new Date();
+  twoWeeksAgo.setDate(today.getDate() - 14);
+  
+  // Create array of all dates in the last 14 days
+  const allDates = [];
+  for (let d = new Date(twoWeeksAgo); d <= today; d.setDate(d.getDate() + 1)) {
+    allDates.push(new Date(d).toISOString().split('T')[0]);
+  }
+  
+  // Map actions to dates
+  const actionsByDate = {};
+  actionsPerDay.forEach(day => {
+    actionsByDate[day.date] = day.count;
+  });
+  
+  // Fill in the data for all dates
+  allDates.forEach(date => {
+    labels.push(formatDate(date));
+    data.push(actionsByDate[date] || 0);
+  });
+  
+  // Create the chart
+  window.activityChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Actions',
+        data: data,
+        borderColor: 'rgba(59, 130, 246, 0.8)',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+  
+  // Helper function to format date as 'MM/DD'
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+}
+
+// Function to render status changes
+function renderStatusChanges(statusChanges) {
+  const container = document.getElementById('status-changes-list');
+  
+  if (!container || !statusChanges || statusChanges.length === 0) {
+    container.innerHTML = '<div class="text-center text-secondary-500 dark:text-secondary-400 py-8">No status changes found</div>';
+    return;
+  }
+  
+  // Clear container
+  container.innerHTML = '';
+  
+  // Render each status change
+  statusChanges.forEach(change => {
+    const date = new Date(change.createdAt).toLocaleString();
+    const fromStatus = change.details?.fromStatus || 'unknown';
+    const toStatus = change.details?.toStatus || 'unknown';
+    
+    const statusChangeHtml = `
+      <div class="p-3 border-b border-secondary-200 dark:border-secondary-700 hover:bg-secondary-50 dark:hover:bg-secondary-800">
+        <div class="flex justify-between items-start">
+          <span class="font-medium">${change.projectTitle || 'Unknown Project'}</span>
+          <span class="text-xs text-secondary-500 dark:text-secondary-400">${date}</span>
+        </div>
+        <div class="mt-1 text-sm">
+          Status changed from <span class="font-medium">${fromStatus}</span> to <span class="font-medium">${toStatus}</span>
+        </div>
+      </div>
+    `;
+    
+    container.innerHTML += statusChangeHtml;
+  });
+}
+
+// Function to load logs
+async function loadLogs(refresh = false, limit = 100) {
+  try {
+    const container = document.getElementById('logs-container');
+    const logTypeFilter = document.getElementById('log-type-filter');
+    const logLevelFilter = document.getElementById('log-level-filter');
+    
+    if (!container) return;
+    
+    // Show loading state if refreshing
+    if (refresh) {
+      container.innerHTML = '<div class="text-center text-secondary-500 dark:text-secondary-400 py-8">Loading logs...</div>';
+    }
+    
+    // Get filter values
+    const logType = logTypeFilter ? logTypeFilter.value : 'app';
+    const level = logLevelFilter ? logLevelFilter.value : 'all';
+    
+    // Get logs from the main process
+    const logs = await window.api.getLogs({ logType, limit, level });
+    
+    // Import analytics module
+    const analytics = require('./modules/analytics');
+    
+    // Clear container if refreshing
+    if (refresh) {
+      container.innerHTML = '';
+    }
+    
+    // Check if logs are empty
+    if (!logs || logs.length === 0) {
+      if (container.innerHTML === '' || refresh) {
+        container.innerHTML = '<div class="text-center text-secondary-500 dark:text-secondary-400 py-8">No logs found</div>';
+      }
+      return;
+    }
+    
+    // Render each log entry
+    logs.forEach(log => {
+      const logHtml = analytics.formatLogEntry(log);
+      container.innerHTML += logHtml;
+    });
+    
+    // Show/hide load more button
+    const loadMoreBtn = document.getElementById('load-more-logs-btn');
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = logs.length < limit ? 'none' : 'inline-block';
+    }
+    
+  } catch (error) {
+    console.error('Error loading logs:', error);
+    const container = document.getElementById('logs-container');
+    if (container) {
+      container.innerHTML = `<div class="text-center text-secondary-500 dark:text-secondary-400 py-8">Error loading logs: ${error.message}</div>`;
+    }
+  }
+}
+
+// Function to check for updates
+function checkForUpdates() {
+  showLoading(checkUpdatesBtn);
+  
+  window.api.checkForUpdates()
+    .then(result => {
+      hideLoading(checkUpdatesBtn);
+      
+      if (result.checking) {
+        showNotification('Checking for updates...', 'info');
+      } else if (result.updateAvailable === false) {
+        showUpdateNotAvailable();
+      } else if (result.error) {
+        showUpdateError(result.message || 'Unknown error occurred');
+      }
+    })
+    .catch(error => {
+      hideLoading(checkUpdatesBtn);
+      showUpdateError(error.message || 'Failed to check for updates');
+    });
+}
+
+// Function to set up update status listener
+function setupUpdateStatusListener() {
+  const removeListener = window.api.onUpdateStatus(status => {
+    console.log('Update status received:', status);
+    
+    switch (status.status) {
+      case 'checking':
+        showNotification('Checking for updates...', 'info');
+        break;
+      case 'available':
+        showUpdateAvailable(status.version, status.releaseNotes);
+        break;
+      case 'not-available':
+        showUpdateNotAvailable();
+        break;
+      case 'downloading':
+        updateDownloadProgress(status.percent);
+        break;
+      case 'downloaded':
+        showUpdateDownloaded(status.version, status.releaseNotes);
+        break;
+      case 'error':
+        showUpdateError(status.message || 'Unknown error occurred');
+        break;
+    }
+  });
+  
+  // Clean up the listener when the window is unloaded
+  window.addEventListener('unload', () => {
+    if (typeof removeListener === 'function') {
+      removeListener();
+    }
+  });
+}
+
+// Function to show update available modal
+function showUpdateAvailable(version, releaseNotes) {
+  hideAllUpdateContents();
+  updateVersion.textContent = version || '';
+  
+  if (releaseNotes) {
+    updateNotes.innerHTML = typeof releaseNotes === 'string' 
+      ? releaseNotes 
+      : 'Release notes not available';
+  } else {
+    updateNotes.innerHTML = 'No release notes available';
+  }
+  
+  updateAvailableContent.classList.remove('hidden');
+  updateModal.classList.remove('hidden');
+}
+
+// Function to update download progress
+function updateDownloadProgress(percent) {
+  if (percent !== undefined && downloadProgressBar && downloadProgressText) {
+    const progress = Math.round(percent);
+    downloadProgressBar.style.width = `${progress}%`;
+    downloadProgressText.textContent = `${progress}%`;
+    
+    if (!updateModal.classList.contains('hidden')) {
+      hideAllUpdateContents();
+      updateDownloadingContent.classList.remove('hidden');
+    }
+  }
+}
+
+// Function to show update downloaded modal
+function showUpdateDownloaded(version, releaseNotes) {
+  hideAllUpdateContents();
+  updateDownloadedContent.classList.remove('hidden');
+  updateModal.classList.remove('hidden');
+  
+  // Also show a notification in case the modal is closed
+  showNotification(
+    'Update downloaded. Restart the application to install.', 
+    'success'
+  );
+}
+
+// Function to show no update available modal
+function showUpdateNotAvailable() {
+  hideAllUpdateContents();
+  updateNotAvailableContent.classList.remove('hidden');
+  updateModal.classList.remove('hidden');
+}
+
+// Function to show update error modal
+function showUpdateError(message) {
+  hideAllUpdateContents();
+  updateErrorMessage.textContent = message || 'Unknown error';
+  updateErrorContent.classList.remove('hidden');
+  updateModal.classList.remove('hidden');
+}
+
+// Function to hide all update content sections
+function hideAllUpdateContents() {
+  updateAvailableContent.classList.add('hidden');
+  updateDownloadingContent.classList.add('hidden');
+  updateDownloadedContent.classList.add('hidden');
+  updateNotAvailableContent.classList.add('hidden');
+  updateErrorContent.classList.add('hidden');
+}
 
 // Expose functions for testing
-window.appFunctions = {
-  loadProjects,
-  filterProjects,
-  setView,
-  toggleTheme,
-  switchTab,
-};
+if (typeof window !== 'undefined') {
+  window.appFunctions = {
+    loadProjects,
+    renderProjects,
+    filterProjects,
+    sortProjects,
+    checkForUpdates,
+  };
+}
 
 /**
  * Start the project review process
@@ -2285,3 +2931,6 @@ function endProjectReview() {
 
   console.log('Project review ended');
 }
+
+// Initialize the application when the DOM is loaded
+document.addEventListener('DOMContentLoaded', init);
