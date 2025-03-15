@@ -41,6 +41,9 @@ coverage
 # nyc test coverage
 .nyc_output
 
+# Jest coverage reports
+coverage/
+
 # Node.js dependencies
 node_modules/
 

@@ -1,24 +1,21 @@
 /**
  * Database Error Handler
- * 
+ *
  * This module provides error handling, logging, and recovery mechanisms for database operations.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { Sequelize } = require('sequelize');
+const { CONFIG } = require('../config');
 
 // Constants
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 500;
 const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const LOG_FILE_PATH = path.join(__dirname, '../../logs/database-errors.log');
+const LOG_FILE_PATH = path.join(CONFIG.logsDir, 'database-errors.log');
 
-// Ensure logs directory exists
-const logsDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
+// Ensure logs directory exists (handled by CONFIG initialization)
 
 /**
  * Log a database error to file
@@ -30,17 +27,17 @@ function logDatabaseError(error, operation, context = {}) {
   const timestamp = new Date().toISOString();
   const errorMessage = error.toString();
   const stackTrace = error.stack || 'No stack trace available';
-  
+
   const logEntry = {
     timestamp,
     operation,
     errorMessage,
     stackTrace,
-    context
+    context,
   };
-  
+
   const logString = JSON.stringify(logEntry, null, 2) + '\n\n';
-  
+
   try {
     fs.appendFileSync(LOG_FILE_PATH, logString);
     console.error(`Database error logged to ${LOG_FILE_PATH}`);
@@ -57,31 +54,38 @@ function logDatabaseError(error, operation, context = {}) {
  */
 async function createDatabaseBackup(dbPath) {
   const timestamp = new Date().toISOString().replace(/:/g, '-');
-  const backupDir = path.join(__dirname, '../../backups');
-  
+  const backupDir = CONFIG.backupDir;
+
   // Ensure backup directory exists
   if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, { recursive: true });
   }
-  
-  const backupPath = path.join(backupDir, `database-backup-${timestamp}.sqlite`);
-  
+
+  const backupPath = path.join(
+    backupDir,
+    `database-backup-${timestamp}.sqlite`
+  );
+
   try {
     // Check if source database exists
     if (!fs.existsSync(dbPath)) {
       throw new Error(`Source database file not found: ${dbPath}`);
     }
-    
+
     // Copy the database file
     fs.copyFileSync(dbPath, backupPath);
     console.log(`Database backup created at ${backupPath}`);
-    
+
     // Clean up old backups (keep last 5)
-    const backups = fs.readdirSync(backupDir)
+    const backups = fs
+      .readdirSync(backupDir)
       .filter(file => file.startsWith('database-backup-'))
       .map(file => path.join(backupDir, file))
-      .sort((a, b) => fs.statSync(b).mtime.getTime() - fs.statSync(a).mtime.getTime());
-    
+      .sort(
+        (a, b) =>
+          fs.statSync(b).mtime.getTime() - fs.statSync(a).mtime.getTime()
+      );
+
     if (backups.length > 5) {
       backups.slice(5).forEach(oldBackup => {
         try {
@@ -92,7 +96,7 @@ async function createDatabaseBackup(dbPath) {
         }
       });
     }
-    
+
     return backupPath;
   } catch (error) {
     console.error('Error creating database backup:', error);
@@ -113,15 +117,18 @@ async function restoreDatabaseFromBackup(backupPath, dbPath) {
     if (!fs.existsSync(backupPath)) {
       throw new Error(`Backup file not found: ${backupPath}`);
     }
-    
+
     // Copy the backup file to the database location
     fs.copyFileSync(backupPath, dbPath);
     console.log(`Database restored from backup ${backupPath}`);
-    
+
     return true;
   } catch (error) {
     console.error('Error restoring database from backup:', error);
-    logDatabaseError(error, 'restoreDatabaseFromBackup', { backupPath, dbPath });
+    logDatabaseError(error, 'restoreDatabaseFromBackup', {
+      backupPath,
+      dbPath,
+    });
     return false;
   }
 }
@@ -135,10 +142,10 @@ async function checkDatabaseIntegrity(sequelize) {
   try {
     // Try to authenticate with the database
     await sequelize.authenticate();
-    
+
     // Run a simple query to check if the database is responsive
     await sequelize.query('PRAGMA integrity_check');
-    
+
     return true;
   } catch (error) {
     console.error('Database integrity check failed:', error);
@@ -154,16 +161,23 @@ async function checkDatabaseIntegrity(sequelize) {
  * @param {number} delay - Initial delay in milliseconds
  * @returns {Promise<any>} - Result of the operation
  */
-async function retryOperation(operation, maxRetries = MAX_RETRY_ATTEMPTS, delay = RETRY_DELAY_MS) {
+async function retryOperation(
+  operation,
+  maxRetries = MAX_RETRY_ATTEMPTS,
+  delay = RETRY_DELAY_MS
+) {
   let lastError;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error;
-      console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}):`, error.message);
-      
+      console.warn(
+        `Database operation failed (attempt ${attempt}/${maxRetries}):`,
+        error.message
+      );
+
       if (attempt < maxRetries) {
         // Wait with exponential backoff before retrying
         const retryDelay = delay * Math.pow(2, attempt - 1);
@@ -171,7 +185,7 @@ async function retryOperation(operation, maxRetries = MAX_RETRY_ATTEMPTS, delay 
       }
     }
   }
-  
+
   // If we get here, all retry attempts failed
   logDatabaseError(lastError, 'retryOperation', { maxRetries, delay });
   throw lastError;
@@ -188,11 +202,16 @@ async function safeDbOperation(operation, operationName, context = {}) {
   try {
     return await retryOperation(operation);
   } catch (error) {
-    console.error(`Database operation '${operationName}' failed after retries:`, error);
+    console.error(
+      `Database operation '${operationName}' failed after retries:`,
+      error
+    );
     logDatabaseError(error, operationName, context);
-    
+
     // Rethrow with a more user-friendly message
-    const userError = new Error(`Database operation failed: ${operationName}. Please try again later.`);
+    const userError = new Error(
+      `Database operation failed: ${operationName}. Please try again later.`
+    );
     userError.originalError = error;
     throw userError;
   }
@@ -204,7 +223,7 @@ function scheduleRegularBackups(dbPath) {
   createDatabaseBackup(dbPath).catch(error => {
     console.error('Failed to create initial database backup:', error);
   });
-  
+
   // Schedule regular backups
   setInterval(() => {
     createDatabaseBackup(dbPath).catch(error => {
@@ -220,5 +239,5 @@ module.exports = {
   checkDatabaseIntegrity,
   retryOperation,
   safeDbOperation,
-  scheduleRegularBackups
-}; 
+  scheduleRegularBackups,
+};

@@ -1,6 +1,6 @@
 /**
  * Logger Module
- * 
+ *
  * This module provides logging functionality for the application.
  */
 
@@ -45,14 +45,14 @@ function writeToLogFile(level, message, data) {
       timestamp,
       level,
       message,
-      data
+      data,
     };
-    
+
     const logString = JSON.stringify(logEntry) + '\n';
-    
+
     // Write to main log file
     fs.appendFileSync(LOG_FILE, logString);
-    
+
     // Also write errors to error log
     if (level === 'error') {
       fs.appendFileSync(ERROR_LOG_FILE, logString);
@@ -89,24 +89,24 @@ function warn(message, data) {
  */
 function error(message, error) {
   console.error(`[ERROR] ${message}`);
-  
+
   let errorData = {};
-  
+
   if (error instanceof Error) {
     errorData = {
       name: error.name,
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
     };
   } else if (error) {
     errorData = error;
   }
-  
+
   writeToLogFile('error', message, errorData);
 }
 
 module.exports = {
   info,
   warn,
-  error
-}; 
+  error,
+};

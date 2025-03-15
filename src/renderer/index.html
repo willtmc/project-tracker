@@ -790,7 +790,6 @@
           </svg>
         </button>
         <button id="refresh-btn" class="btn btn-secondary">Refresh Projects</button>
-        <button id="remove-duplicates-btn" class="btn btn-primary">Remove Duplicates</button>
         <button id="sort-projects-btn" class="btn btn-primary">Sort Projects by Status</button>
         <button id="formulate-projects-btn" class="btn btn-primary">Formulate Projects</button>
         <button id="view-report-btn" class="btn btn-primary">View Report</button>
@@ -802,6 +801,10 @@
       <button class="tab-btn" data-tab="waiting">Waiting</button>
       <button class="tab-btn" data-tab="someday">Someday</button>
       <button class="tab-btn" data-tab="archive">Archive</button>
+      <button class="tab-btn" data-tab="duplicates">Duplicates</button>
+      <button class="tab-btn" data-tab="report">Report</button>
+      <button class="tab-btn" data-tab="review">Review</button>
+      <button class="tab-btn" data-tab="well-formulation">Well-Formulation</button>
     </div>
     
     <!-- Add this right after the tabs section, before the project lists -->
@@ -885,6 +888,59 @@
         <div id="archive-projects" class="projects-grid"></div>
       </div>
       
+      <!-- Duplicates Tab -->
+      <div id="duplicates-tab" class="tab-pane">
+        <div class="review-instructions">
+          <h3>Duplicate Detection</h3>
+          <p>This tool helps you find and manage potential duplicate projects in your database.</p>
+          <ul>
+            <li>Click "Start Duplicate Detection" to scan for potential duplicates</li>
+            <li>Review each group of similar projects</li>
+            <li>Select projects to merge or keep separate</li>
+            <li>Complete the process to clean up your project database</li>
+          </ul>
+        </div>
+        
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value" id="duplicates-count">0</div>
+            <div class="stat-label">Potential Duplicate Groups</div>
+          </div>
+        </div>
+        
+        <div class="review-actions" style="margin-bottom: 20px;">
+          <button id="start-duplicate-detection-btn" class="btn btn-primary">Start Duplicate Detection</button>
+          <button id="toggle-debug-panel-btn" class="btn btn-secondary">Show Debug Panel</button>
+          <button id="force-duplicates-btn" class="btn btn-warning">Force Duplicates (Test)</button>
+        </div>
+        
+        <!-- Debug Panel -->
+        <div id="debug-panel" class="card p-4 mb-4" style="display: none;">
+          <h4>Debug Information</h4>
+          <div class="flex gap-2 mb-2">
+            <button id="clear-debug-log-btn" class="btn btn-sm btn-error">Clear Log</button>
+            <button id="refresh-debug-log-btn" class="btn btn-sm btn-secondary">Refresh Log</button>
+          </div>
+          <pre id="debug-log" class="bg-gray-100 p-3 rounded text-xs font-mono h-[200px] overflow-y-auto"></pre>
+        </div>
+        
+        <div id="duplicate-review-container" class="review-container border border-gray-300 rounded p-4 mt-4" style="display: none;">
+          <div class="duplicate-group-counter mb-4 p-2 bg-gray-100 rounded">
+            <strong>Group <span id="current-group-num">1</span> of <span id="total-groups">0</span></strong>
+          </div>
+          
+          <div id="duplicate-list" class="space-y-4 bg-white p-4 border border-gray-200 rounded mb-4">
+            <!-- Duplicate projects will be inserted here -->
+          </div>
+          
+          <div class="duplicate-actions flex gap-2">
+            <button id="merge-duplicates-btn" class="btn btn-primary">Merge Selected</button>
+            <button id="skip-duplicate-btn" class="btn btn-secondary" onclick="skipDuplicate()">Skip</button>
+            <button id="end-duplicate-review-btn" class="btn btn-error" onclick="endDuplicateReview()">Cancel</button>
+          </div>
+        </div>
+      </div>
+      
       <!-- Report Tab -->
       <div id="report-tab" class="tab-pane">
         <div id="report-container" class="report-container">
@@ -944,20 +1000,7 @@
           </div>
         </div>
         
-        <!-- Duplicate Review Container -->
-        <div id="duplicate-review-container" class="review-container" style="display: none;">
-          <div class="review-header">
-            <h3>Duplicate Project Review</h3>
-            <div class="review-controls">
-              <button id="merge-duplicates-btn" class="btn btn-primary">Merge Projects</button>
-              <button id="skip-duplicate-btn" class="btn btn-secondary">Skip</button>
-              <button id="end-duplicate-review-btn" class="btn btn-danger">Cancel</button>
-            </div>
-          </div>
-          <div id="duplicate-list" class="duplicate-list-container">
-            <!-- Duplicate projects will be displayed here -->
-          </div>
-        </div>
+        <!-- We're removing this duplicate container as it conflicts with the one in the duplicates tab -->
       </div>
       
       <!-- Well-Formulation Tab -->
@@ -1047,6 +1090,6 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   
   <!-- Renderer script -->
-  <script src="renderer-new.js"></script>
+  <script src="renderer-tailwind.js"></script>
 </body>
 </html>

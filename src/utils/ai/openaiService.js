@@ -6,7 +6,7 @@ const { OpenAI } = require('openai');
 class OpenAIService {
   constructor() {
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: process.env.OPENAI_API_KEY,
     });
   }
 
@@ -22,17 +22,17 @@ class OpenAIService {
   async generateChatCompletion(options) {
     try {
       const { model, messages, temperature = 0.7, maxTokens } = options;
-      
+
       const requestOptions = {
         model,
         messages,
-        temperature
+        temperature,
       };
-      
+
       if (maxTokens) {
         requestOptions.max_tokens = maxTokens;
       }
-      
+
       return await this.openai.chat.completions.create(requestOptions);
     } catch (error) {
       console.error('Error generating chat completion:', error);

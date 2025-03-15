@@ -21,7 +21,7 @@ let notificationContainer = null;
  */
 function initializeUI() {
   console.log('Initializing UI elements');
-  
+
   // Get modal elements
   projectModal = document.getElementById('project-modal');
   modalClose = document.querySelector('.close');
@@ -32,14 +32,14 @@ function initializeUI() {
   projectArchive = document.getElementById('project-archive');
   projectWaiting = document.getElementById('project-waiting');
   projectWaitingInput = document.getElementById('project-waiting-input');
-  
+
   // Get container elements - using the correct IDs from the HTML
   activeContainer = document.getElementById('active-projects');
   waitingContainer = document.getElementById('waiting-projects');
   somedayContainer = document.getElementById('someday-projects');
   archiveContainer = document.getElementById('archive-projects');
   notificationContainer = document.getElementById('notification-container');
-  
+
   // Log UI initialization status
   console.log('UI elements initialized:', {
     projectModal: projectModal ? true : false,
@@ -55,9 +55,9 @@ function initializeUI() {
     waitingContainer: waitingContainer ? true : false,
     somedayContainer: somedayContainer ? true : false,
     archiveContainer: archiveContainer ? true : false,
-    notificationContainer: notificationContainer ? true : false
+    notificationContainer: notificationContainer ? true : false,
   });
-  
+
   console.log('UI initialization complete');
 }
 
@@ -71,39 +71,42 @@ function renderProjects(projects, container) {
     console.error('Container not found for rendering projects');
     return;
   }
-  
+
   console.log(`Rendering ${projects.length} projects to container`);
-  
+
   // Clear the container
   container.innerHTML = '';
-  
+
   // Create a projects grid for the projects
   const projectsGrid = document.createElement('div');
   projectsGrid.className = 'projects-grid';
-  
+
   // Add each project to the grid
   projects.forEach(project => {
     const projectCard = document.createElement('div');
     projectCard.className = 'project-card';
-    
+
     // Create project title element
     const projectTitle = document.createElement('h3');
     projectTitle.textContent = project.title || 'Untitled Project';
-    
+
     // Create project meta element
     const projectMeta = document.createElement('div');
     projectMeta.className = 'project-meta';
-    
+
     // Add not-well-formulated indicator if applicable
     if (!project.isWellFormulated) {
-      projectMeta.innerHTML = '<span class="validation-badge">Needs Improvement</span>';
+      projectMeta.innerHTML =
+        '<span class="validation-badge">Needs Improvement</span>';
     }
-    
+
     // Create project content preview
     const projectPreview = document.createElement('p');
     projectPreview.className = 'project-preview';
-    projectPreview.textContent = project.content ? project.content.substring(0, 100) + '...' : 'No content';
-    
+    projectPreview.textContent = project.content
+      ? project.content.substring(0, 100) + '...'
+      : 'No content';
+
     // Add waiting badge if applicable
     if (project.isWaiting) {
       const waitingBadge = document.createElement('span');
@@ -111,21 +114,21 @@ function renderProjects(projects, container) {
       waitingBadge.textContent = 'Waiting';
       projectCard.appendChild(waitingBadge);
     }
-    
+
     // Add click event to open the project
     projectCard.addEventListener('click', () => {
       openProjectModal(project);
     });
-    
+
     // Add elements to the card
     projectCard.appendChild(projectTitle);
     projectCard.appendChild(projectMeta);
     projectCard.appendChild(projectPreview);
-    
+
     // Add the card to the grid
     projectsGrid.appendChild(projectCard);
   });
-  
+
   // Add the grid to the container
   container.appendChild(projectsGrid);
 }
@@ -140,29 +143,31 @@ function openProjectModal(project) {
     showNotification('Error: Could not open project modal', 'error');
     return;
   }
-  
+
   console.log('Opening project modal for:', project.title);
-  
+
   // Set current project
   const projectData = require('./projectData');
   projectData.setCurrentProject(project);
-  
+
   // Set modal content
   projectTitle.value = project.title || '';
   projectContent.value = project.content || '';
-  
+
   // Set status toggles
-  if (projectActive) projectActive.checked = project.isActive && !project.isWaiting;
-  if (projectSomeday) projectSomeday.checked = !project.isActive && !project.isWaiting;
+  if (projectActive)
+    projectActive.checked = project.isActive && !project.isWaiting;
+  if (projectSomeday)
+    projectSomeday.checked = !project.isActive && !project.isWaiting;
   if (projectArchive) projectArchive.checked = false;
   if (projectWaiting) projectWaiting.checked = project.isWaiting;
-  
+
   // Set waiting input
   if (projectWaitingInput) {
     projectWaitingInput.value = project.waitingInput || '';
     projectWaitingInput.style.display = project.isWaiting ? 'block' : 'none';
   }
-  
+
   // Show the modal
   projectModal.style.display = 'block';
 }
@@ -187,19 +192,19 @@ function showNotification(message, type = 'info', duration = 3000) {
     console.error('Notification container not found');
     return;
   }
-  
+
   console.log('Notification:', message, `(${type})`);
-  
+
   // Create notification element
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
-  
+
   // Create message container to separate it from the close button
   const messageContainer = document.createElement('span');
   messageContainer.className = 'notification-message';
   messageContainer.textContent = message;
   notification.appendChild(messageContainer);
-  
+
   // Add close button
   const closeBtn = document.createElement('span');
   closeBtn.className = 'notification-close';
@@ -207,12 +212,12 @@ function showNotification(message, type = 'info', duration = 3000) {
   closeBtn.addEventListener('click', () => {
     notification.remove();
   });
-  
+
   notification.appendChild(closeBtn);
-  
+
   // Add to container
   notificationContainer.appendChild(notification);
-  
+
   // Auto-remove after duration
   setTimeout(() => {
     notification.remove();
@@ -224,5 +229,5 @@ module.exports = {
   renderProjects,
   openProjectModal,
   closeModal,
-  showNotification
+  showNotification,
 };

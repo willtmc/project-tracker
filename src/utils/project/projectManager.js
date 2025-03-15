@@ -3,14 +3,15 @@ const { Project, ProjectHistory } = require('../../models/database');
 const { FileManager } = require('./fileManager');
 const { ProjectParser } = require('./projectParser');
 const { AIProjectHelper } = require('./aiProjectHelper');
-const { DuplicateDetector } = require('../duplicate/duplicateDetector');
+const { DuplicateDetector } = require('../duplicateDetector');
 
 // Project directories from the original Python script
-const BASE_DIR = "/Users/willmclemore/Library/Mobile Documents/27N4MQEA55~pro~writer/Documents";
-const PROJECTS_DIR = path.join(BASE_DIR, "WTM Projects");
-const WAITING_DIR = path.join(BASE_DIR, "WTM Projects Waiting");
-const ARCHIVE_DIR = path.join(BASE_DIR, "WTM Projects Archive");
-const SOMEDAY_DIR = path.join(BASE_DIR, "WTM Projects Someday");
+const BASE_DIR =
+  '/Users/willmclemore/Library/Mobile Documents/27N4MQEA55~pro~writer/Documents';
+const PROJECTS_DIR = path.join(BASE_DIR, 'WTM Projects');
+const WAITING_DIR = path.join(BASE_DIR, 'WTM Projects Waiting');
+const ARCHIVE_DIR = path.join(BASE_DIR, 'WTM Projects Archive');
+const SOMEDAY_DIR = path.join(BASE_DIR, 'WTM Projects Someday');
 
 /**
  * Main project management class
@@ -21,9 +22,9 @@ class ProjectManager {
       active: PROJECTS_DIR,
       waiting: WAITING_DIR,
       archive: ARCHIVE_DIR,
-      someday: SOMEDAY_DIR
+      someday: SOMEDAY_DIR,
     };
-    
+
     this.fileManager = new FileManager(this.projectDirs);
     this.projectParser = new ProjectParser();
     this.aiProjectHelper = new AIProjectHelper();
@@ -46,14 +47,14 @@ class ProjectManager {
     console.log('Getting all projects...');
     // Ensure directories exist
     await this.ensureDirectoriesExist();
-    
+
     const projects = {
       active: [],
       waiting: [],
       someday: [],
-      archive: []
+      archive: [],
     };
-    
+
     for (const [status, dir] of Object.entries(this.projectDirs)) {
       console.log(`Loading projects from ${status} directory: ${dir}`);
       try {
@@ -65,7 +66,7 @@ class ProjectManager {
         // Keep the empty array for this status
       }
     }
-    
+
     return projects;
   }
 
@@ -79,63 +80,98 @@ class ProjectManager {
     try {
       // Get all project files in the directory
       const projectFiles = await this.fileManager.getProjectFiles(directory);
-      
+
       const projects = [];
-      
+
       for (const filePath of projectFiles) {
         const filename = path.basename(filePath);
-        
+
         try {
           // Read file content and stats
-          const { content, stats } = await this.fileManager.readProjectFile(filePath);
-          
+          const { content, stats } =
+            await this.fileManager.readProjectFile(filePath);
+
+          // Validate the lastModified timestamp
+          const validLastModified = this.validateTimestamp(stats.mtime);
+
           // Parse project content
           const projectData = this.projectParser.parseProjectContent(content);
-          const completedTasks = this.projectParser.extractCompletedTasks(content);
+          const completedTasks =
+            this.projectParser.extractCompletedTasks(content);
           const totalTasks = this.projectParser.countTotalTasks(content);
-          const { isWellFormulated, needsImprovement, issues } = this.projectParser.validateProjectStructure(content, filename);
-          
+          const { isWellFormulated, needsImprovement, issues } =
+            this.projectParser.validateProjectStructure(content, filename);
+
           // Update or create project in database
-          await Project.upsert({
+          const [project, created] = await Project.upsert({
             filename: filename,
             path: filePath,
-            title: projectData.title || this.projectParser.extractProjectName(filename),
+            title:
+              projectData.title ||
+              this.projectParser.extractProjectName(filename),
             status,
-            lastModified: stats.mtime,
+            lastModified: validLastModified,
             totalTasks,
             completedTasks: completedTasks.length,
             isWellFormulated,
             needsImprovement,
-            issues: JSON.stringify(issues)
-          });
-          
+            issues: JSON.stringify(issues),
+          }, { returning: true });
+
           // Add to results
           projects.push({
-            filename: filename,
+            id: project.id || filename, // Ensure we have an ID for the frontend
+            filename,
             path: filePath,
-            title: projectData.title || this.projectParser.extractProjectName(filename),
+            title:
+              projectData.title ||
+              this.projectParser.extractProjectName(filename),
             status,
-            lastModified: stats.mtime,
-            content,
+            lastModified: validLastModified,
             totalTasks,
             completedTasks: completedTasks.length,
-            completionPercentage: totalTasks > 0 ? (completedTasks.length / totalTasks) * 100 : 0,
+            completionPercentage:
+              totalTasks > 0 ? (completedTasks.length / totalTasks) * 100 : 0,
             isWellFormulated,
             needsImprovement,
             issues,
-            ...projectData
+            ...projectData,
           });
         } catch (error) {
           console.error(`Error processing project file ${filePath}:`, error);
-          // Skip this file and continue with the next one
         }
       }
-      
+
       return projects;
     } catch (error) {
       console.error(`Error reading directory ${directory}:`, error);
       return [];
     }
+  }
+
+  /**
+   * Validate and fix a timestamp to ensure it's not in the future
+   * @param {Date} timestamp - The timestamp to validate
+   * @returns {Date} - A valid timestamp (current time if the input was in the future)
+   */
+  validateTimestamp(timestamp) {
+    const now = new Date();
+
+    // Check if timestamp is valid
+    if (!timestamp || isNaN(timestamp.getTime())) {
+      console.warn('Invalid timestamp detected, using current time instead');
+      return now;
+    }
+
+    // Check if timestamp is in the future
+    if (timestamp > now) {
+      console.warn(
+        `Future timestamp detected: ${timestamp.toISOString()}, using current time instead`
+      );
+      return now;
+    }
+
+    return timestamp;
   }
 
   /**
@@ -147,14 +183,22 @@ class ProjectManager {
    * @param {string} targetStatus - Target status (active, waiting, someday, archive)
    * @returns {Promise<Object>} - Result object
    */
-  async updateProjectStatus(projectPath, isActive, isWaiting, waitingInput, targetStatus) {
+  async updateProjectStatus(
+    projectPath,
+    isActive,
+    isWaiting,
+    waitingInput,
+    targetStatus
+  ) {
     try {
       console.log(`Updating project status: ${projectPath}`);
-      console.log(`isActive: ${isActive}, isWaiting: ${isWaiting}, targetStatus: ${targetStatus}`);
-      
+      console.log(
+        `isActive: ${isActive}, isWaiting: ${isWaiting}, targetStatus: ${targetStatus}`
+      );
+
       // Determine the target directory based on the status
       let targetDir;
-      
+
       if (isActive) {
         if (isWaiting) {
           targetDir = this.projectDirs.waiting;
@@ -174,46 +218,52 @@ class ProjectManager {
           throw new Error(`Invalid target status: ${targetStatus}`);
         }
       }
-      
+
       // Move the project file to the target directory
-      const newPath = await this.fileManager.moveProjectFile(projectPath, targetDir, waitingInput);
-      
+      const newPath = await this.fileManager.moveProjectFile(
+        projectPath,
+        targetDir,
+        waitingInput
+      );
+
       // Update the project in the database
       const filename = path.basename(newPath);
       const project = await Project.findOne({ where: { path: projectPath } });
-      
+
       if (project) {
         // Determine the new status based on the parameters
-        const newStatus = isActive 
-          ? (isWaiting ? 'waiting' : 'active') 
-          : (targetStatus || 'archive');
-        
+        const newStatus = isActive
+          ? isWaiting
+            ? 'waiting'
+            : 'active'
+          : targetStatus || 'archive';
+
         // Create a history record before updating
         await ProjectHistory.create({
           filename: filename,
           previousStatus: project.status,
           newStatus: newStatus,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
-        
+
         // Update the project
         await project.update({
           path: newPath,
           status: newStatus,
-          lastModified: new Date()
+          lastModified: new Date(),
         });
       }
-      
+
       return {
         success: true,
         message: `Project moved to ${targetStatus || (isWaiting ? 'waiting' : 'active')} status`,
-        newPath
+        newPath,
       };
     } catch (error) {
       console.error('Error updating project status:', error);
       return {
         success: false,
-        message: `Error updating project status: ${error.message}`
+        message: `Error updating project status: ${error.message}`,
       };
     }
   }
@@ -228,19 +278,22 @@ class ProjectManager {
       // Read the project file
       const { content } = await this.fileManager.readProjectFile(projectPath);
       const filename = path.basename(projectPath);
-      
+
       // Validate the project structure
-      const validation = this.projectParser.validateProjectStructure(content, filename);
-      
+      const validation = this.projectParser.validateProjectStructure(
+        content,
+        filename
+      );
+
       return {
         success: true,
-        ...validation
+        ...validation,
       };
     } catch (error) {
       console.error('Error validating project:', error);
       return {
         success: false,
-        message: `Error validating project: ${error.message}`
+        message: `Error validating project: ${error.message}`,
       };
     }
   }
@@ -256,22 +309,26 @@ class ProjectManager {
       // Read the project file
       const { content } = await this.fileManager.readProjectFile(projectPath);
       const filename = path.basename(projectPath);
-      
+
       // Parse the project content
       const projectData = this.projectParser.parseProjectContent(content);
       const project = {
         path: projectPath,
         filename,
-        title: projectData.title || this.projectParser.extractProjectName(filename),
-        content
+        title:
+          projectData.title || this.projectParser.extractProjectName(filename),
+        content,
       };
-      
+
       // Reformulate the project with AI assistance
-      const reformulatedContent = await this.aiProjectHelper.reformulateProject(project, endState);
-      
+      const reformulatedContent = await this.aiProjectHelper.reformulateProject(
+        project,
+        endState
+      );
+
       // Write the reformulated content back to the file
       await this.fileManager.writeProjectFile(projectPath, reformulatedContent);
-      
+
       // Update the project in the database
       const dbProject = await Project.findOne({ where: { path: projectPath } });
       if (dbProject) {
@@ -279,22 +336,22 @@ class ProjectManager {
           lastModified: new Date(),
           isWellFormulated: true,
           needsImprovement: false,
-          issues: JSON.stringify([])
+          issues: JSON.stringify([]),
         });
       }
-      
+
       return {
         success: true,
         message: 'Project reformulated successfully',
         newFilename: filename,
         reformulatedContent: reformulatedContent,
-        isWellFormulated: true
+        isWellFormulated: true,
       };
     } catch (error) {
       console.error('Error reformulating project:', error);
       return {
         success: false,
-        message: 'Error reformulating project: ' + error.message
+        message: 'Error reformulating project: ' + error.message,
       };
     }
   }
@@ -307,19 +364,19 @@ class ProjectManager {
     try {
       // Get all projects
       const projects = await this.getAllProjects();
-      
+
       // Generate the report with AI assistance
       const report = await this.aiProjectHelper.generateReport(projects);
-      
+
       return {
         success: true,
-        report
+        report,
       };
     } catch (error) {
       console.error('Error generating report:', error);
       return {
         success: false,
-        message: `Error generating report: ${error.message}`
+        message: `Error generating report: ${error.message}`,
       };
     }
   }
@@ -333,130 +390,547 @@ class ProjectManager {
       // Get active projects
       const projects = await this.getAllProjects();
       const activeProjects = [...projects.active, ...projects.waiting];
-      
+
       // Find potential duplicates
-      const duplicateGroups = await this.duplicateDetector.findPotentialDuplicates(activeProjects);
-      
+      const duplicateGroups =
+        await this.duplicateDetector.findPotentialDuplicates(activeProjects);
+
       return {
         success: true,
-        duplicateGroups
+        duplicateGroups,
       };
     } catch (error) {
       console.error('Error finding potential duplicates:', error);
       return {
         success: false,
-        message: `Error finding potential duplicates: ${error.message}`
+        message: `Error finding potential duplicates: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Get projects by status
+   * @param {string} status - The status of projects to retrieve (active, waiting, someday, archive)
+   * @returns {Promise<Array>} - Array of projects with the specified status
+   */
+  async getProjectsByStatus(status) {
+    console.log(`Getting projects with status: ${status}`);
+
+    // Get all projects
+    const allProjects = await this.getAllProjects();
+
+    // Return projects with the specified status
+    if (status in allProjects) {
+      console.log(
+        `Found ${allProjects[status].length} projects with status ${status}`
+      );
+      return allProjects[status];
+    } else {
+      console.warn(`Invalid status: ${status}`);
+      return [];
+    }
+  }
+
+  /**
+   * Get projects with potential duplicates
+   * @returns {Promise<Object>} - Object containing success status and duplicate groups
+   */
+  async getProjectsWithPotentialDuplicates() {
+    try {
+      console.log('Getting projects with potential duplicates...');
+
+      // Get active projects
+      const allProjects = await this.getAllProjects();
+      const activeProjects = [...allProjects.active, ...allProjects.waiting];
+      console.log(`Found ${activeProjects.length} active projects`);
+
+      // Find potential duplicates
+      const duplicateGroups =
+        await this.duplicateDetector.findPotentialDuplicates(activeProjects);
+      console.log(`Found ${duplicateGroups.length} potential duplicate groups`);
+
+      if (duplicateGroups.length > 0) {
+        return {
+          success: true,
+          duplicateGroups,
+          hasDuplicates: true,
+          message: `Found ${duplicateGroups.length} potential duplicate groups`,
+        };
+      } else {
+        return {
+          success: true,
+          duplicateGroups: [],
+          hasDuplicates: false,
+          message: 'No potential duplicates found',
+        };
+      }
+    } catch (error) {
+      console.error('Error getting projects with potential duplicates:', error);
+      return {
+        success: false,
+        duplicateGroups: [],
+        hasDuplicates: false,
+        message: `Error getting projects with potential duplicates: ${error.message}`,
       };
     }
   }
 
   /**
    * Merge duplicate projects
-   * @param {Array} projectPaths - Array of project file paths to merge
-   * @returns {Promise<Object>} - Result object
+   * @param {Array<string>} projectIds - Array of project IDs to merge
+   * @returns {Promise<Object>} - Object containing success status and merged project
    */
-  async mergeDuplicateProjects(projectPaths) {
+  async mergeDuplicateProjects(projectIds) {
     try {
-      if (!projectPaths || projectPaths.length < 2) {
+      console.log(
+        `Merging duplicate projects with IDs: ${projectIds.join(', ')}`
+      );
+
+      if (!projectIds || projectIds.length < 2) {
         return {
           success: false,
-          message: 'At least two projects are required for merging'
+          message: 'At least two project IDs are required for merging',
         };
       }
-      
-      // Read all project files
+
+      // Get the projects by their IDs
       const projects = [];
-      for (const projectPath of projectPaths) {
-        const { content } = await this.fileManager.readProjectFile(projectPath);
-        const filename = path.basename(projectPath);
-        const projectData = this.projectParser.parseProjectContent(content);
-        
-        projects.push({
-          path: projectPath,
-          filename,
-          title: projectData.title || this.projectParser.extractProjectName(filename),
-          content
-        });
+      for (const projectId of projectIds) {
+        try {
+          const project = await this.getProjectById(projectId);
+          if (project) {
+            projects.push(project);
+          } else {
+            console.warn(`Project with ID ${projectId} not found`);
+          }
+        } catch (error) {
+          console.error(`Error getting project with ID ${projectId}:`, error);
+        }
       }
-      
-      // Generate merged content
-      const mergedContent = await this.duplicateDetector.generateMergedProject(projects[0], projects[1]);
-      
-      // Write merged content to the first project file
-      await this.fileManager.writeProjectFile(projects[0].path, mergedContent);
-      
-      // Archive the other project files
-      for (let i = 1; i < projects.length; i++) {
-        await this.updateProjectStatus(projects[i].path, false, false, null, 'archive');
+
+      if (projects.length < 2) {
+        return {
+          success: false,
+          message: 'Could not find at least two valid projects to merge',
+        };
       }
-      
+
+      console.log(`Found ${projects.length} projects to merge`);
+
+      // Generate merged content using the duplicate detector
+      const mergedContent = await this.duplicateDetector.generateMergedProject(
+        projects[0],
+        projects[1]
+      );
+
+      // Create a new project with the merged content
+      const primaryProject = projects[0];
+      const mergedProject = {
+        ...primaryProject,
+        title: `Merged: ${primaryProject.title}`,
+        content: mergedContent,
+        lastModified: new Date().toISOString(),
+      };
+
+      // Save the merged project
+      await this.saveProject(mergedProject);
+
+      // Delete the original projects
+      for (const project of projects) {
+        await this.deleteProject(project.id);
+      }
+
       return {
         success: true,
-        message: 'Projects merged successfully',
-        mergedPath: projects[0].path,
-        mergedContent
+        mergedProject,
+        message: `Successfully merged ${projects.length} projects`,
       };
     } catch (error) {
       console.error('Error merging duplicate projects:', error);
       return {
         success: false,
-        message: `Error merging duplicate projects: ${error.message}`
+        message: `Error merging duplicate projects: ${error.message}`,
       };
     }
   }
 
   /**
-   * Get projects with potential duplicates
-   * @returns {Promise<Object>} - Result object with projects and duplicate info
+   * Clean up database entries for files that no longer exist in the filesystem
+   * @returns {Promise<Object>} - Result of the cleanup operation
    */
-  async getProjectsWithPotentialDuplicates() {
+  async cleanupDatabaseEntries() {
+    console.log('Cleaning up database entries for non-existent files...');
+
     try {
-      // Get all projects
-      const allProjects = await this.getAllProjects();
-      const activeProjects = [...allProjects.active, ...allProjects.waiting];
-      
-      // Find potential duplicates
-      const duplicateGroups = await this.duplicateDetector.findPotentialDuplicates(activeProjects);
-      
-      // Create a map of project paths to duplicate groups
-      const duplicateMap = new Map();
-      duplicateGroups.forEach(group => {
-        group.forEach(project => {
-          duplicateMap.set(project.path, {
-            hasDuplicates: true,
-            duplicateGroup: group.map(p => p.path)
-          });
-        });
-      });
-      
-      // Add duplicate information to projects
-      const projectsWithDuplicateInfo = {};
-      
-      for (const [status, projects] of Object.entries(allProjects)) {
-        projectsWithDuplicateInfo[status] = projects.map(project => {
-          const duplicateInfo = duplicateMap.get(project.path) || {
-            hasDuplicates: false,
-            duplicateGroup: []
-          };
-          
-          return {
-            ...project,
-            ...duplicateInfo
-          };
-        });
+      // Get all projects from the database
+      const dbProjects = await Project.findAll();
+      console.log(`Found ${dbProjects.length} projects in database`);
+
+      let removedCount = 0;
+      let errorCount = 0;
+
+      // Check each project file
+      for (const project of dbProjects) {
+        const filePath = project.path;
+
+        try {
+          // Check if the file exists
+          await this.fileManager.fileExists(filePath);
+        } catch (error) {
+          // File doesn't exist, remove from database
+          console.log(`File not found: ${filePath}. Removing from database.`);
+
+          try {
+            // Create history record before deletion
+            await ProjectHistory.create({
+              filename: project.filename,
+              previousStatus: project.status,
+              newStatus: 'deleted',
+              timestamp: new Date(),
+            });
+
+            // Delete the project from the database
+            await Project.destroy({ where: { filename: project.filename } });
+            removedCount++;
+
+            console.log(`Removed database entry for ${project.filename}`);
+          } catch (deleteError) {
+            console.error(
+              `Error removing database entry for ${project.filename}:`,
+              deleteError
+            );
+            errorCount++;
+          }
+        }
       }
-      
+
+      console.log(
+        `Database cleanup completed. Removed ${removedCount} entries. Errors: ${errorCount}`
+      );
       return {
         success: true,
-        projects: projectsWithDuplicateInfo,
-        duplicateGroups
+        message: `Database cleanup completed. Removed ${removedCount} entries. Errors: ${errorCount}`,
+        removedCount,
+        errorCount,
       };
     } catch (error) {
-      console.error('Error getting projects with potential duplicates:', error);
+      console.error('Error cleaning up database entries:', error);
       return {
         success: false,
-        message: `Error getting projects with potential duplicates: ${error.message}`
+        message: `Error cleaning up database entries: ${error.message}`,
+        error,
       };
+    }
+  }
+
+  /**
+   * Fix future-dated timestamps in the database
+   * @returns {Promise<Object>} - Result of the fix operation
+   */
+  async fixFutureDatedTimestamps() {
+    console.log('Fixing future-dated timestamps in the database...');
+
+    try {
+      const now = new Date();
+
+      // Get all projects from the database
+      const dbProjects = await Project.findAll();
+      console.log(`Found ${dbProjects.length} projects in database`);
+
+      let fixedCount = 0;
+      let errorCount = 0;
+
+      // Check each project's timestamps
+      for (const project of dbProjects) {
+        const lastModified = new Date(project.lastModified);
+
+        // Check if lastModified is in the future
+        if (lastModified > now) {
+          console.log(
+            `Future-dated timestamp detected for ${project.filename}: ${lastModified.toISOString()}`
+          );
+
+          try {
+            // Update the project with the current timestamp
+            await Project.update(
+              { lastModified: now },
+              { where: { filename: project.filename } }
+            );
+
+            fixedCount++;
+            console.log(`Fixed timestamp for ${project.filename}`);
+          } catch (updateError) {
+            console.error(
+              `Error fixing timestamp for ${project.filename}:`,
+              updateError
+            );
+            errorCount++;
+          }
+        }
+      }
+
+      console.log(
+        `Timestamp fix completed. Fixed ${fixedCount} entries. Errors: ${errorCount}`
+      );
+      return {
+        success: true,
+        message: `Timestamp fix completed. Fixed ${fixedCount} entries. Errors: ${errorCount}`,
+        fixedCount,
+        errorCount,
+      };
+    } catch (error) {
+      console.error('Error fixing future-dated timestamps:', error);
+      return {
+        success: false,
+        message: `Error fixing future-dated timestamps: ${error.message}`,
+        error,
+      };
+    }
+  }
+
+  /**
+   * Synchronize projects between database and filesystem
+   * This method ensures that the database accurately reflects the filesystem state
+   * @returns {Promise<Object>} - Result of the synchronization operation
+   */
+  async synchronizeProjects() {
+    try {
+      console.log('Starting project synchronization...');
+      console.log('Starting project synchronization between database and filesystem...');
+      console.log('Cleaning up database entries for non-existent files...');
+
+      // Step 1: Clean up database entries for non-existent files
+      const cleanupResult = await this.cleanupDatabaseEntries();
+      console.log('Database cleanup completed:', cleanupResult);
+
+      // Step 2: Fix future-dated timestamps
+      const timestampResult = await this.fixFutureDatedTimestamps();
+      console.log('Timestamp fix completed:', timestampResult);
+
+      // Step 3: Reload all projects from filesystem to ensure database is up-to-date
+      await this.getAllProjects();
+      console.log('Projects reloaded from filesystem');
+
+      // Step 4: Verify synchronization
+      const dbProjects = await Project.findAll();
+      const dbProjectCount = dbProjects.length;
+
+      let fileCount = 0;
+      let filesystemPaths = [];
+      for (const status of Object.keys(this.projectDirs)) {
+        try {
+          const files = await this.fileManager.getProjectFiles(
+            this.projectDirs[status]
+          );
+          fileCount += files.length;
+          filesystemPaths = [...filesystemPaths, ...files];
+        } catch (error) {
+          console.error(`Error counting files in ${status} directory:`, error);
+        }
+      }
+
+      // Step 5: Find and add any missing projects (files that exist in filesystem but not in database)
+      if (dbProjectCount !== fileCount) {
+        console.log(`Database has ${dbProjectCount} projects, filesystem has ${fileCount} projects. Synchronizing...`);
+        
+        // Get all paths from database
+        const dbPaths = dbProjects.map(project => project.path);
+        
+        // Find paths that exist in filesystem but not in database
+        const missingPaths = filesystemPaths.filter(path => !dbPaths.includes(path));
+        
+        if (missingPaths.length > 0) {
+          console.log(`Found ${missingPaths.length} projects in filesystem that are not in database`);
+          
+          let addedCount = 0;
+          let updatedCount = 0;
+          let errorCount = 0;
+          
+          for (const filePath of missingPaths) {
+            try {
+              // Determine status based on directory
+              let status = 'active';
+              for (const [statusKey, dir] of Object.entries(this.projectDirs)) {
+                if (filePath.startsWith(dir)) {
+                  status = statusKey;
+                  break;
+                }
+              }
+              
+              const filename = path.basename(filePath);
+              console.log(`Processing project: ${filename} (${status}) at path: ${filePath}`);
+              
+              // Read file content and stats
+              const { content, stats } = await this.fileManager.readProjectFile(filePath);
+              
+              // Validate the lastModified timestamp
+              const validLastModified = this.validateTimestamp(stats.mtime);
+              
+              // Parse project content
+              const projectData = this.projectParser.parseProjectContent(content);
+              const completedTasks = this.projectParser.extractCompletedTasks(content);
+              const totalTasks = this.projectParser.countTotalTasks(content);
+              const { isWellFormulated, needsImprovement, issues } =
+                this.projectParser.validateProjectStructure(content, filename);
+              
+              // Try to find a project with the exact path
+              let existingProjectByPath = await Project.findOne({
+                where: { path: filePath }
+              });
+              
+              // If found by path, just update metadata
+              if (existingProjectByPath) {
+                console.log(`Project at path ${filePath} already exists. Updating metadata.`);
+                existingProjectByPath.filename = filename; // Ensure filename is up to date
+                existingProjectByPath.status = status;
+                existingProjectByPath.lastModified = validLastModified;
+                existingProjectByPath.totalTasks = totalTasks;
+                existingProjectByPath.completedTasks = completedTasks.length;
+                existingProjectByPath.isWellFormulated = isWellFormulated;
+                existingProjectByPath.needsImprovement = needsImprovement;
+                existingProjectByPath.issues = JSON.stringify(issues);
+                
+                await existingProjectByPath.save();
+                console.log(`Updated metadata for project at path ${filePath}`);
+                updatedCount++;
+                continue; // Skip to next project
+              }
+              
+              // Try to find a project with the same filename
+              const existingProjectByFilename = await Project.findByPk(filename);
+              
+              if (existingProjectByFilename) {
+                // Check if the existing path still exists
+                const existingPathExists = await this.fileManager.fileExists(existingProjectByFilename.path);
+                
+                if (existingPathExists) {
+                  // Both files exist - this is a duplicate filename in different directories
+                  // We need to handle this special case by creating a unique filename
+                  const directoryName = path.basename(path.dirname(filePath));
+                  const uniqueFilename = `${filename}__${directoryName}`;
+                  console.log(`Found duplicate filename in different directories. Creating new entry with unique filename: ${uniqueFilename}`);
+                  
+                  await Project.create({
+                    filename: uniqueFilename,
+                    path: filePath,
+                    title: projectData.title || this.projectParser.extractProjectName(filename),
+                    status,
+                    lastModified: validLastModified,
+                    totalTasks,
+                    completedTasks: completedTasks.length,
+                    isWellFormulated,
+                    needsImprovement,
+                    issues: JSON.stringify(issues),
+                  });
+                  
+                  console.log(`Added project with unique filename ${uniqueFilename} to database with path ${filePath}`);
+                  addedCount++;
+                } else {
+                  // The existing path no longer exists - update the existing record
+                  console.log(`Project ${filename} has moved. Updating path from ${existingProjectByFilename.path} to ${filePath}`);
+                  existingProjectByFilename.path = filePath;
+                  existingProjectByFilename.status = status;
+                  existingProjectByFilename.lastModified = validLastModified;
+                  existingProjectByFilename.totalTasks = totalTasks;
+                  existingProjectByFilename.completedTasks = completedTasks.length;
+                  existingProjectByFilename.isWellFormulated = isWellFormulated;
+                  existingProjectByFilename.needsImprovement = needsImprovement;
+                  existingProjectByFilename.issues = JSON.stringify(issues);
+                  
+                  await existingProjectByFilename.save();
+                  console.log(`Updated project ${filename} in database with new path`);
+                  updatedCount++;
+                }
+              } else {
+                // No existing project found - create a new one
+                await Project.create({
+                  filename: filename,
+                  path: filePath,
+                  title: projectData.title || this.projectParser.extractProjectName(filename),
+                  status,
+                  lastModified: validLastModified,
+                  totalTasks,
+                  completedTasks: completedTasks.length,
+                  isWellFormulated,
+                  needsImprovement,
+                  issues: JSON.stringify(issues),
+                });
+                
+                console.log(`Added new project ${filename} to database with path ${filePath}`);
+                addedCount++;
+              }
+            } catch (error) {
+              console.error(`Error processing project ${filePath}:`, error);
+              errorCount++;
+            }
+          }
+          
+          console.log(`Synchronization results: Added ${addedCount}, Updated ${updatedCount}, Errors ${errorCount}`);
+        }
+        
+        // Also check for paths in database that don't exist in filesystem
+        const extraPaths = dbPaths.filter(path => !filesystemPaths.includes(path));
+        if (extraPaths.length > 0) {
+          console.log(`Found ${extraPaths.length} projects in database that don't exist in filesystem`);
+          // We don't delete them automatically as they might be temporarily unavailable
+          // Just log them for now
+          for (const extraPath of extraPaths) {
+            console.log(`Database contains project at path that doesn't exist: ${extraPath}`);
+          }
+        }
+      }
+
+      // Recheck database count after adding missing projects
+      const updatedDbProjects = await Project.findAll();
+      const updatedDbProjectCount = updatedDbProjects.length;
+
+      const syncStatus = {
+        databaseProjects: updatedDbProjectCount,
+        filesystemProjects: fileCount,
+        inSync: updatedDbProjectCount === fileCount,
+      };
+
+      console.log('Synchronization verification:', syncStatus);
+
+      return {
+        success: true,
+        message: 'Project synchronization completed',
+        cleanupResult,
+        timestampResult,
+        syncStatus,
+      };
+    } catch (error) {
+      console.error('Error during project synchronization:', error);
+      return {
+        success: false,
+        message: `Project synchronization failed: ${error.message}`,
+        error: error.toString(),
+      };
+    }
+  }
+
+  /**
+   * Get a project by its ID
+   * @param {string} projectId - The ID of the project to retrieve
+   * @returns {Promise<Object|null>} - The project object or null if not found
+   */
+  async getProjectById(projectId) {
+    try {
+      console.log(`Getting project with ID: ${projectId}`);
+
+      // Query the database for the project
+      const project = await Project.findOne({ where: { id: projectId } });
+
+      if (!project) {
+        console.log(`No project found with ID: ${projectId}`);
+        return null;
+      }
+
+      console.log(`Found project with ID: ${projectId}`);
+      return project;
+    } catch (error) {
+      console.error(`Error getting project with ID ${projectId}:`, error);
+      throw error;
     }
   }
 }

@@ -27,19 +27,19 @@ let waitingInputCancelBtn;
  */
 function initializeReviewElements() {
   console.log('Initializing review elements');
-  
+
   // Get review container and elements
   reviewContainer = document.querySelector('.review-container');
   reviewProjectTitle = document.getElementById('review-project-title');
   reviewProjectContent = document.getElementById('review-project-content');
   reviewInstructions = document.querySelector('.review-instructions');
-  
+
   // Get waiting input dialog elements
   waitingInputDialog = document.getElementById('waiting-dialog');
   waitingInputText = document.getElementById('waiting-input-text');
   waitingInputSaveBtn = document.getElementById('waiting-submit-btn');
   waitingInputCancelBtn = document.getElementById('waiting-cancel-btn');
-  
+
   // Log review elements for debugging
   const reviewElements = {
     container: !!reviewContainer,
@@ -49,7 +49,7 @@ function initializeReviewElements() {
     waitingDialog: !!waitingInputDialog,
     waitingText: !!waitingInputText,
     waitingSaveBtn: !!waitingInputSaveBtn,
-    waitingCancelBtn: !!waitingInputCancelBtn
+    waitingCancelBtn: !!waitingInputCancelBtn,
   };
   console.log('Review elements after initialization:', reviewElements);
 }
@@ -59,36 +59,51 @@ function initializeReviewElements() {
  */
 function startProjectReview() {
   console.log('Starting project review');
-  
+
   // Check if review elements are initialized
-  if (!reviewContainer || !reviewProjectTitle || !reviewProjectContent || !reviewInstructions) {
+  if (
+    !reviewContainer ||
+    !reviewProjectTitle ||
+    !reviewProjectContent ||
+    !reviewInstructions
+  ) {
     console.error('Review elements not initialized');
-    uiManager.showNotification('Error: Review elements not initialized', 'error');
+    uiManager.showNotification(
+      'Error: Review elements not initialized',
+      'error'
+    );
     return;
   }
-  
+
   // Get projects data
   const projectsData = projectData.getProjectsData();
-  
+
   // Check if projects data is available
-  if (!projectsData || !projectsData.active || projectsData.active.length === 0) {
+  if (
+    !projectsData ||
+    !projectsData.active ||
+    projectsData.active.length === 0
+  ) {
     console.error('No active projects available for review');
-    uiManager.showNotification('No active projects available for review', 'error');
+    uiManager.showNotification(
+      'No active projects available for review',
+      'error'
+    );
     return;
   }
-  
+
   // Set review mode
   isInReviewMode = true;
-  
+
   // Set review projects to active projects
   reviewProjects = [...projectsData.active];
-  
+
   // Reset review index
   currentReviewIndex = 0;
-  
+
   // Show review container
   reviewContainer.style.display = 'block';
-  
+
   // Show review instructions
   reviewInstructions.innerHTML = `
     <h3>Review Instructions</h3>
@@ -102,24 +117,24 @@ function startProjectReview() {
     </ul>
     <p>Reviewing project <strong>1</strong> of <strong>${reviewProjects.length}</strong></p>
   `;
-  
+
   // Hide start review button and show next review button
   const startReviewBtn = document.getElementById('start-review-btn');
   const nextReviewBtn = document.getElementById('next-review-btn');
   const completeReviewBtn = document.getElementById('complete-review-btn');
-  
+
   if (startReviewBtn) {
     startReviewBtn.style.display = 'none';
   }
-  
+
   if (nextReviewBtn) {
     nextReviewBtn.disabled = false;
   }
-  
+
   if (completeReviewBtn) {
     completeReviewBtn.style.display = 'none';
   }
-  
+
   // Display the first project
   displayCurrentProject();
 }
@@ -132,40 +147,44 @@ function displayCurrentProject() {
     console.error('Cannot display project: not in review mode or no projects');
     return;
   }
-  
+
   // Check if we've reached the end of the projects
   if (currentReviewIndex >= reviewProjects.length) {
     console.log('Reached end of projects to review');
     endReview();
     return;
   }
-  
+
   // Get current project
   const currentProject = reviewProjects[currentReviewIndex];
-  
+
   // Display project title and content
   reviewProjectTitle.textContent = currentProject.title || 'Untitled Project';
-  
+
   // Use marked to render markdown content if available
   if (window.marked && currentProject.content) {
-    reviewProjectContent.innerHTML = window.marked.parse(currentProject.content);
+    reviewProjectContent.innerHTML = window.marked.parse(
+      currentProject.content
+    );
   } else {
     reviewProjectContent.textContent = currentProject.content || 'No content';
   }
-  
+
   // Update review progress
   const reviewCount = document.getElementById('review-count');
   const reviewTotal = document.getElementById('review-total');
-  
+
   if (reviewCount) {
     reviewCount.textContent = currentReviewIndex.toString();
   }
-  
+
   if (reviewTotal) {
     reviewTotal.textContent = reviewProjects.length.toString();
   }
-  
-  console.log(`Displaying project ${currentReviewIndex + 1}/${reviewProjects.length}: ${currentProject.title}`);
+
+  console.log(
+    `Displaying project ${currentReviewIndex + 1}/${reviewProjects.length}: ${currentProject.title}`
+  );
 }
 
 /**
@@ -173,19 +192,19 @@ function displayCurrentProject() {
  */
 function moveToNextProject() {
   console.log('Moving to next project');
-  
+
   // Increment review index
   currentReviewIndex++;
-  
+
   // Check if we've reached the end of the projects
   if (currentReviewIndex >= reviewProjects.length) {
     console.log('Reached the end of review projects');
-    
+
     // Show completion message
     if (reviewProjectTitle) {
       reviewProjectTitle.textContent = 'Review Complete!';
     }
-    
+
     if (reviewProjectContent) {
       reviewProjectContent.innerHTML = `
         <div class="review-complete">
@@ -195,7 +214,7 @@ function moveToNextProject() {
         </div>
       `;
     }
-    
+
     // Update instructions
     if (reviewInstructions) {
       reviewInstructions.innerHTML = `
@@ -204,22 +223,22 @@ function moveToNextProject() {
         <p>Click the "Complete Review" button to finish.</p>
       `;
     }
-    
+
     // Show complete review button and hide next button
     const nextReviewBtn = document.getElementById('next-review-btn');
     const completeReviewBtn = document.getElementById('complete-review-btn');
-    
+
     if (nextReviewBtn) {
       nextReviewBtn.disabled = true;
     }
-    
+
     if (completeReviewBtn) {
       completeReviewBtn.style.display = 'block';
     }
-    
+
     return;
   }
-  
+
   // Display the next project
   displayCurrentProject();
 }
@@ -229,51 +248,57 @@ function moveToNextProject() {
  */
 function endReview() {
   console.log('Ending review');
-  
+
   // Reset review state
   isInReviewMode = false;
   currentReviewIndex = 0;
   reviewProjects = [];
-  
+
   // Hide review container
   if (reviewContainer) {
     reviewContainer.style.display = 'none';
   }
-  
+
   // Reset UI elements
   if (reviewProjectTitle) {
     reviewProjectTitle.textContent = 'Select Start to begin review';
   }
-  
+
   if (reviewProjectContent) {
     reviewProjectContent.innerHTML = '';
   }
-  
+
   // Reset buttons
   const nextReviewBtn = document.getElementById('next-review-btn');
   const completeReviewBtn = document.getElementById('complete-review-btn');
   const startReviewBtn = document.getElementById('start-review-btn');
-  
+
   if (nextReviewBtn) {
     nextReviewBtn.disabled = true;
   }
-  
+
   if (completeReviewBtn) {
     completeReviewBtn.style.display = 'none';
   }
-  
+
   if (startReviewBtn) {
     startReviewBtn.style.display = 'block';
   }
-  
+
   // Show notification
-  uiManager.showNotification('Project sorting completed! Moving to well-formulation phase...', 'success');
-  
+  uiManager.showNotification(
+    'Project sorting completed! Moving to well-formulation phase...',
+    'success'
+  );
+
   // Move to the next workflow step if we're in a workflow
   try {
-    if (workflowManager && 
-        typeof workflowManager.getCurrentWorkflowStep === 'function' && 
-        workflowManager.getCurrentWorkflowStep() === workflowManager.WORKFLOW_STEPS.PROJECT_SORTING) {
+    if (
+      workflowManager &&
+      typeof workflowManager.getCurrentWorkflowStep === 'function' &&
+      workflowManager.getCurrentWorkflowStep() ===
+        workflowManager.WORKFLOW_STEPS.PROJECT_SORTING
+    ) {
       // Short delay before moving to next phase for better user experience
       setTimeout(() => {
         workflowManager.moveToNextWorkflowStep();
@@ -282,7 +307,7 @@ function endReview() {
   } catch (error) {
     console.error('Error moving to next workflow step:', error);
   }
-  
+
   // Short delay before starting the well-formulation phase
   setTimeout(() => {
     // Start the well-formulation phase automatically
@@ -295,15 +320,15 @@ function endReview() {
  */
 function cancelReview() {
   console.log('Canceling review');
-  
+
   // Reset review mode
   isInReviewMode = false;
-  
+
   // Hide review container
   if (reviewContainer) {
     reviewContainer.style.display = 'none';
   }
-  
+
   // Show notification
   uiManager.showNotification('Review canceled', 'info');
 }
@@ -314,42 +339,51 @@ function cancelReview() {
  */
 function showWaitingInputDialog(project) {
   console.log('Showing waiting input dialog');
-  
+
   if (!waitingInputDialog || !waitingInputText) {
     console.error('Waiting input dialog elements not found');
-    uiManager.showNotification('Error: Could not show waiting input dialog', 'error');
+    uiManager.showNotification(
+      'Error: Could not show waiting input dialog',
+      'error'
+    );
     return;
   }
-  
+
   // Clear previous input
   waitingInputText.value = '';
-  
+
   // Show the dialog
   waitingInputDialog.style.display = 'block';
-  
+
   // Focus on the input field
   waitingInputText.focus();
-  
+
   // Set up save button event
   if (waitingInputSaveBtn) {
     // Remove any existing event listeners
     const newSaveBtn = waitingInputSaveBtn.cloneNode(true);
-    waitingInputSaveBtn.parentNode.replaceChild(newSaveBtn, waitingInputSaveBtn);
+    waitingInputSaveBtn.parentNode.replaceChild(
+      newSaveBtn,
+      waitingInputSaveBtn
+    );
     waitingInputSaveBtn = newSaveBtn;
-    
+
     // Add new event listener
     waitingInputSaveBtn.addEventListener('click', () => {
       saveWaitingInput(project);
     });
   }
-  
+
   // Set up cancel button event
   if (waitingInputCancelBtn) {
     // Remove any existing event listeners
     const newCancelBtn = waitingInputCancelBtn.cloneNode(true);
-    waitingInputCancelBtn.parentNode.replaceChild(newCancelBtn, waitingInputCancelBtn);
+    waitingInputCancelBtn.parentNode.replaceChild(
+      newCancelBtn,
+      waitingInputCancelBtn
+    );
     waitingInputCancelBtn = newCancelBtn;
-    
+
     // Add new event listener
     waitingInputCancelBtn.addEventListener('click', () => {
       hideWaitingInputDialog();
@@ -363,29 +397,39 @@ function showWaitingInputDialog(project) {
  */
 function saveWaitingInput(project) {
   console.log('Saving waiting input');
-  
+
   if (!waitingInputText) {
     console.error('Waiting input text element not found');
     return;
   }
-  
+
   const waitingInput = waitingInputText.value.trim();
-  
+
   if (!waitingInput) {
-    uiManager.showNotification('Please enter what you are waiting for', 'error');
+    uiManager.showNotification(
+      'Please enter what you are waiting for',
+      'error'
+    );
     return;
   }
-  
+
   // Update project status to waiting with input
-  projectData.updateProjectStatus(project, 'waiting', waitingInput)
+  projectData
+    .updateProjectStatus(project, 'waiting', waitingInput)
     .then(() => {
-      uiManager.showNotification(`Moved "${project.title}" to waiting`, 'success');
+      uiManager.showNotification(
+        `Moved "${project.title}" to waiting`,
+        'success'
+      );
       hideWaitingInputDialog();
       moveToNextProject();
     })
     .catch(error => {
       console.error('Error moving project to waiting:', error);
-      uiManager.showNotification(`Error moving project to waiting: ${error.message}`, 'error');
+      uiManager.showNotification(
+        `Error moving project to waiting: ${error.message}`,
+        'error'
+      );
       hideWaitingInputDialog();
     });
 }
@@ -395,7 +439,7 @@ function saveWaitingInput(project) {
  */
 function hideWaitingInputDialog() {
   console.log('Hiding waiting input dialog');
-  
+
   if (waitingInputDialog) {
     waitingInputDialog.style.display = 'none';
   }
@@ -406,7 +450,7 @@ function hideWaitingInputDialog() {
  */
 function setupReviewEventListeners() {
   console.log('Setting up review event listeners');
-  
+
   // Set up start review button
   const startReviewBtn = document.getElementById('start-review-btn');
   if (startReviewBtn) {
@@ -415,7 +459,7 @@ function setupReviewEventListeners() {
       startProjectReview();
     });
   }
-  
+
   // Set up next review button
   const nextReviewBtn = document.getElementById('next-review-btn');
   if (nextReviewBtn) {
@@ -424,7 +468,7 @@ function setupReviewEventListeners() {
       moveToNextProject();
     });
   }
-  
+
   // Set up complete review button
   const completeReviewBtn = document.getElementById('complete-review-btn');
   if (completeReviewBtn) {
@@ -433,7 +477,7 @@ function setupReviewEventListeners() {
       endReview();
     });
   }
-  
+
   console.log('Review event listeners set up');
 }
 
@@ -442,10 +486,14 @@ function setupReviewEventListeners() {
  * @returns {Object|null} The current project or null if not in review mode
  */
 function getCurrentReviewProject() {
-  if (!isInReviewMode || !reviewProjects || currentReviewIndex >= reviewProjects.length) {
+  if (
+    !isInReviewMode ||
+    !reviewProjects ||
+    currentReviewIndex >= reviewProjects.length
+  ) {
     return null;
   }
-  
+
   return reviewProjects[currentReviewIndex];
 }
 
@@ -463,11 +511,11 @@ function isReviewMode() {
  */
 async function findDuplicateProjects() {
   console.log('Finding duplicate projects');
-  
+
   try {
     // Find potential duplicates
     duplicateGroups = await projectData.findPotentialDuplicates();
-    
+
     if (duplicateGroups && duplicateGroups.length > 0) {
       console.log(`Found ${duplicateGroups.length} potential duplicate groups`);
       return true;
@@ -486,7 +534,7 @@ async function findDuplicateProjects() {
  */
 async function startDuplicateReview() {
   console.log('Starting duplicate project review');
-  
+
   // Check if there are duplicate groups
   if (!duplicateGroups || duplicateGroups.length === 0) {
     const hasDuplicates = await findDuplicateProjects();
@@ -495,17 +543,17 @@ async function startDuplicateReview() {
       return false;
     }
   }
-  
+
   // Set review mode
   isInReviewMode = true;
   isReviewingDuplicates = true;
-  
+
   // Reset duplicate index
   currentDuplicateGroup = duplicateGroups[0];
-  
+
   // Show review container
   reviewContainer.style.display = 'block';
-  
+
   // Show review instructions for duplicates
   reviewInstructions.innerHTML = `
     <h3>Duplicate Project Review</h3>
@@ -517,15 +565,21 @@ async function startDuplicateReview() {
       <button id="cancel-duplicate-review-btn" class="btn btn-danger">Cancel Review</button>
     </div>
   `;
-  
+
   // Add event listeners for duplicate review buttons
-  document.getElementById('merge-duplicates-btn').addEventListener('click', mergeDuplicateProjects);
-  document.getElementById('skip-duplicates-btn').addEventListener('click', skipDuplicateGroup);
-  document.getElementById('cancel-duplicate-review-btn').addEventListener('click', cancelReview);
-  
+  document
+    .getElementById('merge-duplicates-btn')
+    .addEventListener('click', mergeDuplicateProjects);
+  document
+    .getElementById('skip-duplicates-btn')
+    .addEventListener('click', skipDuplicateGroup);
+  document
+    .getElementById('cancel-duplicate-review-btn')
+    .addEventListener('click', cancelReview);
+
   // Display current duplicate group
   displayDuplicateGroup();
-  
+
   console.log('Duplicate project review started');
   return true;
 }
@@ -538,25 +592,25 @@ function displayDuplicateGroup() {
     console.error('No duplicate group to display');
     return;
   }
-  
+
   console.log('Displaying duplicate group:', currentDuplicateGroup);
-  
+
   // Get the duplicate list container
   const duplicateList = document.getElementById('duplicate-list');
   if (!duplicateList) {
     console.error('Duplicate list container not found');
     return;
   }
-  
+
   // Clear the duplicate list
   duplicateList.innerHTML = '';
-  
+
   // Create a container for each project in the duplicate group
   currentDuplicateGroup.forEach((project, index) => {
     const projectContainer = document.createElement('div');
     projectContainer.className = 'duplicate-project';
     projectContainer.dataset.path = project.path;
-    
+
     // Create project header with title and path
     const projectHeader = document.createElement('div');
     projectHeader.className = 'duplicate-project-header';
@@ -564,16 +618,18 @@ function displayDuplicateGroup() {
       <h4>${project.title || 'Untitled Project'}</h4>
       <small>${project.path}</small>
     `;
-    
+
     // Create project content preview
     const projectContent = document.createElement('div');
     projectContent.className = 'duplicate-project-content';
-    projectContent.innerHTML = marked.parse(project.content.substring(0, 300) + '...');
-    
+    projectContent.innerHTML = marked.parse(
+      project.content.substring(0, 300) + '...'
+    );
+
     // Add to project container
     projectContainer.appendChild(projectHeader);
     projectContainer.appendChild(projectContent);
-    
+
     // Add to duplicate list
     duplicateList.appendChild(projectContainer);
   });
@@ -587,23 +643,26 @@ async function mergeDuplicateProjects() {
     console.error('No duplicate group to merge');
     return;
   }
-  
+
   console.log('Merging duplicate projects:', currentDuplicateGroup);
-  
+
   try {
     // Get project paths
     const projectPaths = currentDuplicateGroup.map(project => project.path);
-    
+
     // Merge projects
     const result = await projectData.mergeDuplicateProjects(projectPaths);
-    
+
     if (result.success) {
       uiManager.showNotification('Projects merged successfully', 'success');
-      
+
       // Move to next duplicate group
       moveToNextDuplicateGroup();
     } else {
-      uiManager.showNotification(`Error merging projects: ${result.message}`, 'error');
+      uiManager.showNotification(
+        `Error merging projects: ${result.message}`,
+        'error'
+      );
     }
   } catch (error) {
     console.error('Error merging duplicate projects:', error);
@@ -624,10 +683,10 @@ function skipDuplicateGroup() {
  */
 function moveToNextDuplicateGroup() {
   // Find the index of the current duplicate group
-  const currentIndex = duplicateGroups.findIndex(group => 
-    group === currentDuplicateGroup
+  const currentIndex = duplicateGroups.findIndex(
+    group => group === currentDuplicateGroup
   );
-  
+
   // Move to the next group
   if (currentIndex < duplicateGroups.length - 1) {
     currentDuplicateGroup = duplicateGroups[currentIndex + 1];
@@ -643,18 +702,18 @@ function moveToNextDuplicateGroup() {
  */
 function endDuplicateReview() {
   console.log('Ending duplicate review');
-  
+
   // Reset review state
   isInReviewMode = false;
   isReviewingDuplicates = false;
   currentDuplicateGroup = null;
-  
+
   // Hide review container
   reviewContainer.style.display = 'none';
-  
+
   // Show notification
   uiManager.showNotification('Duplicate review completed', 'success');
-  
+
   // Reload projects to refresh the list
   projectData.loadProjects().then(() => {
     // Trigger event to refresh project list
@@ -670,16 +729,16 @@ function handleReviewKeydown(event) {
   if (!isInReviewMode) {
     return;
   }
-  
+
   console.log(`Review keydown: ${event.key}`);
-  
+
   // Get current project
   const currentProject = getCurrentReviewProject();
   if (!currentProject) {
     console.error('No current project to review');
     return;
   }
-  
+
   // Handle different keys
   switch (event.key.toLowerCase()) {
     case 'y': // Yes - keep project active
@@ -687,10 +746,11 @@ function handleReviewKeydown(event) {
       uiManager.showNotification('Project kept active', 'success');
       moveToNextProject();
       break;
-      
+
     case 'a': // Archive project
       console.log('Archiving project');
-      projectData.updateProjectStatus(currentProject, 'archive')
+      projectData
+        .updateProjectStatus(currentProject, 'archive')
         .then(() => {
           uiManager.showNotification('Project archived', 'success');
           moveToNextProject();
@@ -700,25 +760,29 @@ function handleReviewKeydown(event) {
           uiManager.showNotification('Error archiving project', 'error');
         });
       break;
-      
+
     case 's': // Move to someday
       console.log('Moving project to someday');
-      projectData.updateProjectStatus(currentProject, 'someday')
+      projectData
+        .updateProjectStatus(currentProject, 'someday')
         .then(() => {
           uiManager.showNotification('Project moved to someday', 'success');
           moveToNextProject();
         })
         .catch(error => {
           console.error('Error moving project to someday:', error);
-          uiManager.showNotification('Error moving project to someday', 'error');
+          uiManager.showNotification(
+            'Error moving project to someday',
+            'error'
+          );
         });
       break;
-      
+
     case 'w': // Move to waiting
       console.log('Moving project to waiting');
       showWaitingInputDialog(currentProject);
       break;
-      
+
     default:
       // Ignore other keys
       break;
@@ -741,5 +805,5 @@ module.exports = {
   skipDuplicateGroup,
   moveToNextDuplicateGroup,
   endDuplicateReview,
-  handleReviewKeydown
+  handleReviewKeydown,
 };

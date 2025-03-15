@@ -9,19 +9,19 @@ const reviewManager = require('../reviewManager');
  */
 function setupEventListeners() {
   console.log('Setting up event listeners');
-  
+
   // Set up tab event listeners
   tabManager.setupTabEventListeners();
-  
+
   // Set up review event listeners
   reviewManager.setupReviewEventListeners();
-  
+
   // Set up project event listeners
   projectEvents.setupProjectEventListeners();
-  
+
   // Set up keyboard shortcuts
   keyboardShortcuts.setupKeyboardShortcuts();
-  
+
   // Set up refresh button
   const refreshBtn = document.getElementById('refresh-btn');
   if (refreshBtn) {
@@ -31,10 +31,10 @@ function setupEventListeners() {
       await renderer.loadAndRenderProjects();
     });
   }
-  
+
   console.log('Event listeners set up');
 }
 
 module.exports = {
-  setupEventListeners
+  setupEventListeners,
 };

@@ -11,14 +11,14 @@ let currentProject = null;
  */
 async function loadProjects() {
   console.log('Loading projects');
-  
+
   try {
     // Request projects from main process
     const projects = await ipcRenderer.invoke('get-projects');
-    
+
     // Store projects data
     projectsData = projects;
-    
+
     console.log('Projects loaded successfully');
     return projects;
   } catch (error) {
@@ -61,7 +61,7 @@ function getCurrentProject() {
  */
 async function updateProjectStatus(project, targetStatus, waitingInput = null) {
   console.log(`Updating project status: ${project.title} to ${targetStatus}`);
-  
+
   try {
     // Prepare project data for status update
     const projectData = {
@@ -69,17 +69,23 @@ async function updateProjectStatus(project, targetStatus, waitingInput = null) {
       targetStatus: targetStatus,
       isActive: targetStatus === 'active' || targetStatus === 'waiting',
       isWaiting: targetStatus === 'waiting',
-      waitingInput: waitingInput
+      waitingInput: waitingInput,
     };
-    
+
     // Update project status through main process
-    const result = await ipcRenderer.invoke('update-project-status', projectData);
-    
+    const result = await ipcRenderer.invoke(
+      'update-project-status',
+      projectData
+    );
+
     if (result && result.success) {
       console.log('Project status updated successfully');
       return true;
     } else {
-      console.error('Failed to update project status:', result ? result.error : 'Unknown error');
+      console.error(
+        'Failed to update project status:',
+        result ? result.error : 'Unknown error'
+      );
       return false;
     }
   } catch (error) {
@@ -94,7 +100,7 @@ async function updateProjectStatus(project, targetStatus, waitingInput = null) {
  */
 async function saveProjectChanges() {
   console.log('Saving project changes');
-  
+
   try {
     // Get form data
     const projectTitle = document.getElementById('project-title');
@@ -103,52 +109,58 @@ async function saveProjectChanges() {
     const projectSomeday = document.getElementById('project-someday');
     const projectArchive = document.getElementById('project-archive');
     const projectWaiting = document.getElementById('project-waiting');
-    const projectWaitingInput = document.getElementById('project-waiting-input');
-    
+    const projectWaitingInput = document.getElementById(
+      'project-waiting-input'
+    );
+
     if (!projectTitle || !projectContent) {
       console.error('Project form elements not found');
       return false;
     }
-    
+
     // Get status
     let status = 'active';
     if (projectActive && projectActive.checked) status = 'active';
     if (projectSomeday && projectSomeday.checked) status = 'someday';
     if (projectArchive && projectArchive.checked) status = 'archive';
     if (projectWaiting && projectWaiting.checked) status = 'waiting';
-    
+
     // Get waiting input if applicable
     let waitingInput = null;
     if (status === 'waiting' && projectWaitingInput) {
       waitingInput = projectWaitingInput.value.trim();
-      
+
       if (!waitingInput) {
         console.error('Waiting input is required for waiting status');
         return false;
       }
     }
-    
+
     // Prepare project data
     const title = projectTitle.value.trim();
     const content = projectContent.value.trim();
-    
+
     if (!title) {
       console.error('Project title is required');
       return false;
     }
-    
+
     // Create or update project
     if (currentProject) {
       // Update existing project
       currentProject.title = title;
       currentProject.content = content;
-      
+
       // Update project status if changed
       if (currentProject.status !== status) {
-        const result = await updateProjectStatus(currentProject, status, waitingInput);
+        const result = await updateProjectStatus(
+          currentProject,
+          status,
+          waitingInput
+        );
         return result;
       }
-      
+
       return true;
     } else {
       // Create new project
@@ -156,17 +168,20 @@ async function saveProjectChanges() {
         title: title,
         content: content,
         status: status,
-        waitingInput: waitingInput
+        waitingInput: waitingInput,
       };
-      
+
       // Save new project through main process
       const result = await ipcRenderer.invoke('create-project', newProject);
-      
+
       if (result && result.success) {
         console.log('New project created successfully');
         return true;
       } else {
-        console.error('Failed to create new project:', result ? result.error : 'Unknown error');
+        console.error(
+          'Failed to create new project:',
+          result ? result.error : 'Unknown error'
+        );
         return false;
       }
     }
@@ -182,12 +197,14 @@ async function saveProjectChanges() {
  */
 async function findPotentialDuplicates() {
   console.log('Finding potential duplicate projects');
-  
+
   try {
     const result = await ipcRenderer.invoke('find-potential-duplicates');
-    
+
     if (result.success) {
-      console.log(`Found ${result.duplicateGroups.length} potential duplicate groups`);
+      console.log(
+        `Found ${result.duplicateGroups.length} potential duplicate groups`
+      );
       return result.duplicateGroups;
     } else {
       console.error('Error finding potential duplicates:', result.message);
@@ -206,10 +223,37 @@ async function findPotentialDuplicates() {
  */
 async function mergeDuplicateProjects(projectPaths) {
   console.log(`Merging duplicate projects: ${projectPaths.join(', ')}`);
-  
+
   try {
-    const result = await ipcRenderer.invoke('merge-duplicate-projects', { projectPaths });
-    
+    const result = await ipcRenderer.invoke('merge-duplicate-projects', {
+      projectPaths,
+    });
+
+    if (result.success) {
+      console.log('Projects merged successfully');
+      return result;
+    } else {
+      console.error('Error merging projects:', result.message);
+      return { success: false, message: result.message };
+    }
+  } catch (error) {
+    console.error('Error merging projects:', error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Merge selected projects
+ * @param {Array} projectPaths Array of project paths to merge
+ * @returns {Promise<Object>} Result of the merge operation
+ */
+async function mergeProjects(projectPaths) {
+  console.log(`Merging projects: ${projectPaths.join(', ')}`);
+
+  try {
+    // Use the new IPC handler
+    const result = await ipcRenderer.invoke('merge-projects', projectPaths);
+
     if (result.success) {
       console.log('Projects merged successfully');
       return result;
@@ -229,12 +273,14 @@ async function mergeDuplicateProjects(projectPaths) {
  */
 async function getProjectsWithDuplicates() {
   console.log('Getting projects with potential duplicates');
-  
+
   try {
     const result = await ipcRenderer.invoke('get-projects-with-duplicates');
-    
+
     if (result.success) {
-      console.log(`Found ${result.projects.length} projects with potential duplicates`);
+      console.log(
+        `Found ${result.projects.length} projects with potential duplicates`
+      );
       return result.projects;
     } else {
       console.error('Error getting projects with duplicates:', result.message);
@@ -253,16 +299,19 @@ async function getProjectsWithDuplicates() {
  */
 async function updateProject(project) {
   console.log(`Updating project: ${project.title}`);
-  
+
   try {
     // Update project through main process
     const result = await ipcRenderer.invoke('update-project', project);
-    
+
     if (result && result.success) {
       console.log('Project updated successfully');
       return true;
     } else {
-      console.error('Failed to update project:', result ? result.message : 'Unknown error');
+      console.error(
+        'Failed to update project:',
+        result ? result.message : 'Unknown error'
+      );
       return false;
     }
   } catch (error) {
@@ -280,6 +329,7 @@ module.exports = {
   saveProjectChanges,
   findPotentialDuplicates,
   mergeDuplicateProjects,
+  mergeProjects,
   getProjectsWithDuplicates,
-  updateProject
+  updateProject,
 };

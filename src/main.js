@@ -1,10 +1,17 @@
 const path = require('path');
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const dotenv = require('dotenv');
+const { autoUpdater } = require('electron-updater');
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env') });
+
+// Configure auto-updater
+autoUpdater.logger = require('electron-log');
+autoUpdater.logger.transports.file.level = 'info';
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 // Import database error handlers
 let databaseErrorHandlers;
@@ -24,7 +31,8 @@ try {
   ProjectHistory = db.ProjectHistory;
 } catch (e) {
   console.error('Error loading database module:', e);
-  setupDatabase = async () => console.log('Database setup skipped due to error');
+  setupDatabase = async () =>
+    console.log('Database setup skipped due to error');
 }
 
 // Conditionally import project manager
@@ -36,13 +44,34 @@ try {
   console.error('Error loading project manager module:', e);
   projectManager = {
     getAllProjects: async () => getMockProjects(),
-    updateProjectStatus: async () => ({ success: false, message: 'ProjectManager not available' }),
-    validateProject: async () => ({ success: false, message: 'ProjectManager not available' }),
-    reformulateProject: async () => ({ success: false, message: 'ProjectManager not available' }),
-    generateReport: async () => ({ success: false, message: 'ProjectManager not available' }),
-    findPotentialDuplicates: async () => ({ success: false, message: 'ProjectManager not available' }),
-    mergeDuplicateProjects: async () => ({ success: false, message: 'ProjectManager not available' }),
-    getProjectsWithPotentialDuplicates: async () => ({ success: false, message: 'ProjectManager not available' })
+    updateProjectStatus: async () => ({
+      success: false,
+      message: 'ProjectManager not available',
+    }),
+    validateProject: async () => ({
+      success: false,
+      message: 'ProjectManager not available',
+    }),
+    reformulateProject: async () => ({
+      success: false,
+      message: 'ProjectManager not available',
+    }),
+    generateReport: async () => ({
+      success: false,
+      message: 'ProjectManager not available',
+    }),
+    findPotentialDuplicates: async () => ({
+      success: false,
+      message: 'ProjectManager not available',
+    }),
+    mergeDuplicateProjects: async () => ({
+      success: false,
+      message: 'ProjectManager not available',
+    }),
+    getProjectsWithPotentialDuplicates: async () => ({
+      success: false,
+      message: 'ProjectManager not available',
+    }),
   };
 }
 
@@ -50,15 +79,18 @@ try {
 try {
   let retryCount = 0;
   const maxRetries = 3;
-  
+
   const initDatabase = async () => {
     try {
       await setupDatabase();
       console.log('Database setup completed successfully');
     } catch (error) {
       retryCount++;
-      console.error(`Error during database setup (attempt ${retryCount}/${maxRetries}):`, error);
-      
+      console.error(
+        `Error during database setup (attempt ${retryCount}/${maxRetries}):`,
+        error
+      );
+
       if (retryCount < maxRetries) {
         console.log(`Retrying database setup in 2 seconds...`);
         setTimeout(initDatabase, 2000);
@@ -67,7 +99,7 @@ try {
       }
     }
   };
-  
+
   initDatabase();
 } catch (e) {
   console.error('Error initializing database:', e);
@@ -81,18 +113,18 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
-    }
+      preload: path.join(__dirname, 'preload.js'),
+    },
   });
 
   // Load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index-tailwind.html'));
-  
+
   // Open the DevTools in development mode
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
-  
+
   // Always open DevTools for debugging
   mainWindow.webContents.openDevTools();
 
@@ -101,8 +133,30 @@ function createWindow() {
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-app.whenReady().then(() => {
-  createWindow();
+app.whenReady().then(async () => {
+  const mainWindow = createWindow();
+  
+  // Setup auto-updater events
+  setupAutoUpdater(mainWindow);
+
+  // Check for updates
+  autoUpdater.checkForUpdatesAndNotify().catch(err => {
+    console.error('Error checking for updates:', err);
+  });
+
+  // Synchronize projects between database and filesystem
+  try {
+    console.log('Starting project synchronization...');
+    const syncResult = await projectManager.synchronizeProjects();
+    console.log('Project synchronization completed:', syncResult);
+
+    // Notify renderer process about synchronization result
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindow.webContents.send('sync-completed', syncResult);
+    });
+  } catch (error) {
+    console.error('Error during project synchronization:', error);
+  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -120,29 +174,29 @@ app.on('window-all-closed', function () {
 ipcMain.handle('get-projects', async () => {
   try {
     console.log('IPC: get-projects called');
-    
+
     // Get all projects directly from the database
     console.log('Querying database for all projects...');
     const dbProjects = await Project.findAll();
     console.log(`Found ${dbProjects.length} projects in database`);
-    
+
     // Group projects by status
     const projects = {
       active: [],
       waiting: [],
       someday: [],
-      archive: []
+      archive: [],
     };
-    
+
     for (const project of dbProjects) {
       const status = project.status || 'active';
       if (!projects[status]) {
         projects[status] = [];
       }
-      
+
       // Convert Sequelize model to plain object
       const plainProject = project.get({ plain: true });
-      
+
       // Parse issues if it's a JSON string
       if (plainProject.issues && typeof plainProject.issues === 'string') {
         try {
@@ -151,25 +205,27 @@ ipcMain.handle('get-projects', async () => {
           plainProject.issues = [];
         }
       }
-      
+
       // Add to appropriate status array
       projects[status].push({
         ...plainProject,
-        completionPercentage: plainProject.totalTasks > 0 
-          ? (plainProject.completedTasks / plainProject.totalTasks) * 100 
-          : 0
+        completionPercentage:
+          plainProject.totalTasks > 0
+            ? (plainProject.completedTasks / plainProject.totalTasks) * 100
+            : 0,
       });
     }
-    
+
     // Log the number of projects in each status
     for (const [status, statusProjects] of Object.entries(projects)) {
       console.log(`${status} projects: ${statusProjects.length}`);
     }
-    
+
     console.log('Projects loaded from database successfully');
     return projects;
   } catch (error) {
     console.error('IPC: Error getting projects:', error);
+    console.log('FALLING BACK TO MOCK DATA - THIS IS NOT REAL DATA');
     return getMockProjects();
   }
 });
@@ -250,12 +306,29 @@ ipcMain.handle('merge-duplicate-projects', async (event, projectPaths) => {
   }
 });
 
+// New handler for the updated merge-projects implementation
+ipcMain.handle('merge-projects', async (event, projectPaths) => {
+  try {
+    console.log('Merging projects:', projectPaths);
+    return await projectManager.mergeDuplicateProjects(projectPaths);
+  } catch (error) {
+    console.error('Error merging projects:', error);
+    return {
+      success: false,
+      message: `Error merging projects: ${error.message}`,
+    };
+  }
+});
+
 ipcMain.handle('get-projects-with-potential-duplicates', async () => {
   try {
     return await projectManager.getProjectsWithPotentialDuplicates();
   } catch (error) {
     console.error('Error getting projects with potential duplicates:', error);
-    return { success: false, message: 'Error getting projects with potential duplicates' };
+    return {
+      success: false,
+      message: 'Error getting projects with potential duplicates',
+    };
   }
 });
 
@@ -266,11 +339,42 @@ ipcMain.handle('retry-database-operation', async () => {
       return await databaseErrorHandlers.retryPendingOperation();
     } else {
       console.error('Database error handlers not available');
-      return { success: false, message: 'Database error handlers not available' };
+      return {
+        success: false,
+        message: 'Database error handlers not available',
+      };
     }
   } catch (error) {
     console.error('Error retrying database operation:', error);
     return { success: false, message: 'Error retrying database operation' };
+  }
+});
+
+// Add a new IPC handler for manual synchronization
+ipcMain.handle('synchronize-projects', async () => {
+  try {
+    console.log('Manual project synchronization requested');
+    const result = await projectManager.synchronizeProjects();
+    console.log('Manual project synchronization completed:', result);
+    return result;
+  } catch (error) {
+    console.error('Error during manual project synchronization:', error);
+    return {
+      success: false,
+      message: `Error during project synchronization: ${error.message}`,
+      error: error.message,
+    };
+  }
+});
+
+// Handle check for updates request - only register once at the top level
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    await autoUpdater.checkForUpdates();
+    return { success: true };
+  } catch (error) {
+    console.error('Error checking for updates:', error);
+    return { success: false, error: error.toString() };
   }
 });
 
@@ -292,35 +396,40 @@ function getMockProjects() {
     {
       id: '1',
       title: 'Complete Project Tracker App',
-      content: 'Finish building the Electron-based project tracker application with all planned features.',
+      content:
+        'Finish building the Electron-based project tracker application with all planned features.',
       status: 'active',
       lastModified: new Date().toISOString(),
-      endState: 'A fully functional project tracker app with dark mode, grid/list views, and project management features.',
+      endState:
+        'A fully functional project tracker app with dark mode, grid/list views, and project management features.',
       tasks: [
         { id: '1-1', title: 'Set up Electron project', completed: true },
         { id: '1-2', title: 'Create basic UI', completed: true },
         { id: '1-3', title: 'Implement dark mode', completed: false },
         { id: '1-4', title: 'Add project CRUD operations', completed: false },
-        { id: '1-5', title: 'Implement view toggle', completed: false }
-      ]
+        { id: '1-5', title: 'Implement view toggle', completed: false },
+      ],
     },
     {
       id: '2',
       title: 'Learn Tailwind CSS',
-      content: 'Study Tailwind CSS documentation and build sample projects to get comfortable with the utility-first approach.',
+      content:
+        'Study Tailwind CSS documentation and build sample projects to get comfortable with the utility-first approach.',
       status: 'active',
       lastModified: new Date(Date.now() - 86400000).toISOString(),
-      endState: 'Comfortable using Tailwind CSS for all new projects without needing to reference documentation constantly.',
+      endState:
+        'Comfortable using Tailwind CSS for all new projects without needing to reference documentation constantly.',
       tasks: [
         { id: '2-1', title: 'Read documentation', completed: true },
         { id: '2-2', title: 'Complete tutorial', completed: true },
-        { id: '2-3', title: 'Build sample project', completed: false }
-      ]
+        { id: '2-3', title: 'Build sample project', completed: false },
+      ],
     },
     {
       id: '3',
       title: 'Research Database Options',
-      content: 'Evaluate different database options for storing project data, including SQLite, MongoDB, and simple JSON files.',
+      content:
+        'Evaluate different database options for storing project data, including SQLite, MongoDB, and simple JSON files.',
       status: 'waiting',
       waitingFor: 'Performance metrics from the team',
       lastModified: new Date(Date.now() - 172800000).toISOString(),
@@ -329,20 +438,21 @@ function getMockProjects() {
         { id: '3-2', title: 'Research MongoDB', completed: true },
         { id: '3-3', title: 'Research JSON storage', completed: true },
         { id: '3-4', title: 'Create comparison document', completed: false },
-        { id: '3-5', title: 'Make final recommendation', completed: false }
-      ]
+        { id: '3-5', title: 'Make final recommendation', completed: false },
+      ],
     },
     {
       id: '4',
       title: 'Plan Marketing Strategy',
-      content: 'Develop a marketing strategy for the project tracker app, including target audience, messaging, and channels.',
+      content:
+        'Develop a marketing strategy for the project tracker app, including target audience, messaging, and channels.',
       status: 'someday',
       lastModified: new Date(Date.now() - 259200000).toISOString(),
       tasks: [
         { id: '4-1', title: 'Define target audience', completed: false },
         { id: '4-2', title: 'Create messaging framework', completed: false },
-        { id: '4-3', title: 'Identify marketing channels', completed: false }
-      ]
+        { id: '4-3', title: 'Identify marketing channels', completed: false },
+      ],
     },
     {
       id: '5',
@@ -353,8 +463,153 @@ function getMockProjects() {
       endState: 'Project was archived due to changing priorities.',
       tasks: [
         { id: '5-1', title: 'Initial research', completed: true },
-        { id: '5-2', title: 'Create project plan', completed: false }
-      ]
-    }
+        { id: '5-2', title: 'Create project plan', completed: false },
+      ],
+    },
   ];
-} 
+}
+
+// Setup auto-updater events
+function setupAutoUpdater(mainWindow) {
+  // Checking for updates
+  autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for updates...');
+    mainWindow.webContents.send('update-status', { status: 'checking' });
+  });
+
+  // Update available
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info);
+    mainWindow.webContents.send('update-status', {
+      status: 'available',
+      version: info.version,
+      releaseNotes: info.releaseNotes,
+    });
+    
+    // Show notification to user
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Available',
+      message: `A new version (${info.version}) is available and downloading in the background.`,
+      buttons: ['OK'],
+    });
+  });
+
+  // Update not available
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('No updates available:', info);
+    mainWindow.webContents.send('update-status', {
+      status: 'not-available',
+      currentVersion: app.getVersion(),
+    });
+  });
+
+  // Update downloaded
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info);
+    mainWindow.webContents.send('update-status', {
+      status: 'downloaded',
+      version: info.version,
+      releaseNotes: info.releaseNotes,
+    });
+    
+    // Prompt user to restart the app
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: `Version ${info.version} has been downloaded. Would you like to restart now to install the update?`,
+      buttons: ['Restart', 'Later'],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0) {
+        autoUpdater.quitAndInstall(false, true);
+      }
+    });
+  });
+
+  // Error during update
+  autoUpdater.on('error', (err) => {
+    console.error('Error during update:', err);
+    mainWindow.webContents.send('update-status', {
+      status: 'error',
+      error: err.toString(),
+    });
+  });
+
+  // Download progress
+  autoUpdater.on('download-progress', (progressObj) => {
+    console.log(`Download progress: ${progressObj.percent}%`);
+    mainWindow.webContents.send('update-status', {
+      status: 'downloading',
+      progress: progressObj,
+    });
+  });
+}
+
+// Update available
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available:', info);
+  mainWindow.webContents.send('update-status', {
+    status: 'available',
+    version: info.version,
+    releaseNotes: info.releaseNotes,
+  });
+  
+  // Show notification to user
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update Available',
+    message: `A new version (${info.version}) is available and downloading in the background.`,
+    buttons: ['OK'],
+  });
+});
+
+// Update not available
+autoUpdater.on('update-not-available', (info) => {
+  console.log('No updates available:', info);
+  mainWindow.webContents.send('update-status', {
+    status: 'not-available',
+    currentVersion: app.getVersion(),
+  });
+});
+
+// Update downloaded
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Update downloaded:', info);
+  mainWindow.webContents.send('update-status', {
+    status: 'downloaded',
+    version: info.version,
+    releaseNotes: info.releaseNotes,
+  });
+  
+  // Prompt user to restart the app
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update Ready',
+    message: `Version ${info.version} has been downloaded. Would you like to restart now to install the update?`,
+    buttons: ['Restart', 'Later'],
+    defaultId: 0,
+  }).then(({ response }) => {
+    if (response === 0) {
+      autoUpdater.quitAndInstall(false, true);
+    }
+  });
+});
+
+// Error during update
+autoUpdater.on('error', (err) => {
+  console.error('Error during update:', err);
+  mainWindow.webContents.send('update-status', {
+    status: 'error',
+    error: err.toString(),
+  });
+});
+
+// Download progress
+autoUpdater.on('download-progress', (progressObj) => {
+  console.log(`Download progress: ${progressObj.percent}%`);
+  mainWindow.webContents.send('update-status', {
+    status: 'downloading',
+    progress: progressObj,
+  });
+});

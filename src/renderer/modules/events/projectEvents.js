@@ -11,7 +11,7 @@ let isProjectModalOpen = false;
  */
 function createNewProject() {
   console.log('Creating new project');
-  
+
   // Get project modal elements
   const projectModal = document.getElementById('project-modal');
   const projectTitle = document.getElementById('project-title');
@@ -21,20 +21,20 @@ function createNewProject() {
   const projectArchive = document.getElementById('project-archive');
   const projectWaiting = document.getElementById('project-waiting');
   const projectWaitingInput = document.getElementById('project-waiting-input');
-  
+
   if (!projectModal || !projectTitle || !projectContent) {
     console.error('Project modal elements not found');
     uiManager.showNotification('Error: Could not create new project', 'error');
     return;
   }
-  
+
   // Reset current project
   projectData.setCurrentProject(null);
-  
+
   // Clear form fields
   projectTitle.value = '';
   projectContent.value = '';
-  
+
   // Set default status
   if (projectActive) projectActive.checked = true;
   if (projectSomeday) projectSomeday.checked = false;
@@ -46,15 +46,15 @@ function createNewProject() {
       projectWaitingInput.value = '';
     }
   }
-  
+
   // Show the modal
   projectModal.style.display = 'block';
   isProjectModalOpen = true;
   isFormDirty = false;
-  
+
   // Focus on the title field
   projectTitle.focus();
-  
+
   console.log('New project modal opened');
 }
 
@@ -63,17 +63,17 @@ function createNewProject() {
  */
 async function saveProject() {
   console.log('Saving project');
-  
+
   try {
     const result = await projectData.saveProjectChanges();
-    
+
     if (result) {
       console.log('Project saved successfully');
       uiManager.showNotification('Project saved successfully', 'success');
-      
+
       // Close the modal
       closeProjectModal();
-      
+
       // Reload projects
       const renderer = require('../../renderer-new');
       await renderer.loadAndRenderProjects();
@@ -83,7 +83,10 @@ async function saveProject() {
     }
   } catch (error) {
     console.error('Error saving project:', error);
-    uiManager.showNotification('Error saving project: ' + error.message, 'error');
+    uiManager.showNotification(
+      'Error saving project: ' + error.message,
+      'error'
+    );
   }
 }
 
@@ -104,7 +107,7 @@ function closeProjectModal() {
  */
 function setupProjectEventListeners() {
   console.log('Setting up project event listeners');
-  
+
   // Set up new project button
   const newProjectBtn = document.getElementById('new-project-btn');
   if (newProjectBtn) {
@@ -113,7 +116,7 @@ function setupProjectEventListeners() {
       createNewProject();
     });
   }
-  
+
   // Set up save project button
   const saveProjectBtn = document.getElementById('save-project-btn');
   if (saveProjectBtn) {
@@ -122,7 +125,7 @@ function setupProjectEventListeners() {
       await saveProject();
     });
   }
-  
+
   // Set up modal close button
   const modalClose = document.querySelector('.close');
   if (modalClose) {
@@ -131,7 +134,7 @@ function setupProjectEventListeners() {
       closeProjectModal();
     });
   }
-  
+
   // Set up project status toggles
   const projectWaiting = document.getElementById('project-waiting');
   if (projectWaiting) {
@@ -143,29 +146,32 @@ function setupProjectEventListeners() {
       }
     });
   }
-  
+
   // Set up form change detection
-  const formElements = document.querySelectorAll('#project-form input, #project-form textarea');
+  const formElements = document.querySelectorAll(
+    '#project-form input, #project-form textarea'
+  );
   formElements.forEach(element => {
     element.addEventListener('change', () => {
       isFormDirty = true;
     });
-    
+
     if (element.tagName === 'TEXTAREA') {
       element.addEventListener('keyup', () => {
         isFormDirty = true;
       });
     }
   });
-  
+
   // Set up window beforeunload event
-  window.addEventListener('beforeunload', (e) => {
+  window.addEventListener('beforeunload', e => {
     if (isFormDirty && isProjectModalOpen) {
-      e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+      e.returnValue =
+        'You have unsaved changes. Are you sure you want to leave?';
       return e.returnValue;
     }
   });
-  
+
   console.log('Project event listeners set up');
 }
 
@@ -175,5 +181,5 @@ module.exports = {
   closeProjectModal,
   setupProjectEventListeners,
   isFormDirty,
-  isProjectModalOpen
+  isProjectModalOpen,
 };

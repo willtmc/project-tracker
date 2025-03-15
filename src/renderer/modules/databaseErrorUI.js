@@ -1,6 +1,6 @@
 /**
  * Database Error UI Module
- * 
+ *
  * This module provides UI components for handling database errors and recovery.
  */
 
@@ -20,12 +20,12 @@ let dbErrorCloseBtn;
  */
 function initializeDatabaseErrorUI() {
   console.log('Initializing database error UI');
-  
+
   // Create database error modal if it doesn't exist
   if (!document.getElementById('database-error-modal')) {
     createDatabaseErrorModal();
   }
-  
+
   // Get database error modal elements
   dbErrorModal = document.getElementById('database-error-modal');
   dbErrorTitle = document.getElementById('database-error-title');
@@ -33,7 +33,7 @@ function initializeDatabaseErrorUI() {
   dbErrorRetryBtn = document.getElementById('database-error-retry-btn');
   dbErrorRestoreBtn = document.getElementById('database-error-restore-btn');
   dbErrorCloseBtn = document.getElementById('database-error-close-btn');
-  
+
   // Set up event listeners
   if (dbErrorRetryBtn) {
     dbErrorRetryBtn.addEventListener('click', () => {
@@ -41,25 +41,28 @@ function initializeDatabaseErrorUI() {
       retryFailedOperation();
     });
   }
-  
+
   if (dbErrorRestoreBtn) {
     dbErrorRestoreBtn.addEventListener('click', () => {
       hideDatabaseErrorModal();
       restoreFromBackup();
     });
   }
-  
+
   if (dbErrorCloseBtn) {
     dbErrorCloseBtn.addEventListener('click', () => {
       hideDatabaseErrorModal();
     });
   }
-  
+
   // Register IPC handlers
-  ipcRenderer.on('database-error', (event, { title, message, canRetry, canRestore }) => {
-    showDatabaseErrorModal(title, message, canRetry, canRestore);
-  });
-  
+  ipcRenderer.on(
+    'database-error',
+    (event, { title, message, canRetry, canRestore }) => {
+      showDatabaseErrorModal(title, message, canRetry, canRestore);
+    }
+  );
+
   console.log('Database error UI initialized');
 }
 
@@ -68,12 +71,12 @@ function initializeDatabaseErrorUI() {
  */
 function createDatabaseErrorModal() {
   console.log('Creating database error modal');
-  
+
   // Create modal element
   const modal = document.createElement('div');
   modal.id = 'database-error-modal';
   modal.className = 'modal';
-  
+
   // Create modal content
   modal.innerHTML = `
     <div class="modal-content database-error-content">
@@ -86,10 +89,10 @@ function createDatabaseErrorModal() {
       </div>
     </div>
   `;
-  
+
   // Add modal to the document
   document.body.appendChild(modal);
-  
+
   // Add CSS for the modal
   const style = document.createElement('style');
   style.textContent = `
@@ -113,7 +116,7 @@ function createDatabaseErrorModal() {
     }
   `;
   document.head.appendChild(style);
-  
+
   console.log('Database error modal created');
 }
 
@@ -124,28 +127,34 @@ function createDatabaseErrorModal() {
  * @param {boolean} canRetry - Whether the operation can be retried
  * @param {boolean} canRestore - Whether a backup can be restored
  */
-function showDatabaseErrorModal(title, message, canRetry = true, canRestore = true) {
+function showDatabaseErrorModal(
+  title,
+  message,
+  canRetry = true,
+  canRestore = true
+) {
   console.log('Showing database error modal:', title);
-  
+
   if (!dbErrorModal || !dbErrorTitle || !dbErrorMessage) {
     console.error('Database error modal elements not initialized');
     uiManager.showNotification('Database error: ' + message, 'error');
     return;
   }
-  
+
   // Set modal content
   dbErrorTitle.textContent = title || 'Database Error';
-  dbErrorMessage.innerHTML = message || 'An error occurred while accessing the database.';
-  
+  dbErrorMessage.innerHTML =
+    message || 'An error occurred while accessing the database.';
+
   // Show/hide buttons based on capabilities
   if (dbErrorRetryBtn) {
     dbErrorRetryBtn.style.display = canRetry ? 'block' : 'none';
   }
-  
+
   if (dbErrorRestoreBtn) {
     dbErrorRestoreBtn.style.display = canRestore ? 'block' : 'none';
   }
-  
+
   // Show modal
   dbErrorModal.style.display = 'flex';
 }
@@ -155,7 +164,7 @@ function showDatabaseErrorModal(title, message, canRetry = true, canRestore = tr
  */
 function hideDatabaseErrorModal() {
   console.log('Hiding database error modal');
-  
+
   if (dbErrorModal) {
     dbErrorModal.style.display = 'none';
   }
@@ -166,17 +175,24 @@ function hideDatabaseErrorModal() {
  */
 function retryFailedOperation() {
   console.log('Retrying failed database operation');
-  
+
   // Show loading notification
   uiManager.showNotification('Retrying database operation...', 'info');
-  
+
   // Send retry request to main process
-  ipcRenderer.invoke('retry-database-operation')
+  ipcRenderer
+    .invoke('retry-database-operation')
     .then(result => {
       if (result.success) {
-        uiManager.showNotification('Database operation completed successfully', 'success');
+        uiManager.showNotification(
+          'Database operation completed successfully',
+          'success'
+        );
       } else {
-        uiManager.showNotification('Failed to retry database operation: ' + result.error, 'error');
+        uiManager.showNotification(
+          'Failed to retry database operation: ' + result.error,
+          'error'
+        );
       }
     })
     .catch(error => {
@@ -190,17 +206,21 @@ function retryFailedOperation() {
  */
 function restoreFromBackup() {
   console.log('Restoring database from backup');
-  
+
   // Show loading notification
   uiManager.showNotification('Restoring database from backup...', 'info');
-  
+
   // Send restore request to main process
-  ipcRenderer.invoke('restore-database-from-backup')
+  ipcRenderer
+    .invoke('restore-database-from-backup')
     .then(result => {
       if (result.success) {
         uiManager.showNotification('Database restored successfully', 'success');
       } else {
-        uiManager.showNotification('Failed to restore database: ' + result.error, 'error');
+        uiManager.showNotification(
+          'Failed to restore database: ' + result.error,
+          'error'
+        );
       }
     })
     .catch(error => {
@@ -213,5 +233,5 @@ function restoreFromBackup() {
 module.exports = {
   initializeDatabaseErrorUI,
   showDatabaseErrorModal,
-  hideDatabaseErrorModal
-}; 
+  hideDatabaseErrorModal,
+};

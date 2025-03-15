@@ -7,6 +7,56 @@ const path = require('path');
 class FileManager {
   constructor(projectDirs) {
     this.projectDirs = projectDirs;
+    this.operationLog = [];
+  }
+
+  /**
+   * Log a file operation
+   * @param {string} operation - The operation being performed
+   * @param {string} filePath - The file path involved
+   * @param {Error} [error] - Optional error if the operation failed
+   */
+  logOperation(operation, filePath, error = null) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+      timestamp,
+      operation,
+      filePath,
+      success: !error,
+      error: error
+        ? {
+            message: error.message,
+            stack: error.stack,
+          }
+        : null,
+    };
+
+    this.operationLog.push(logEntry);
+
+    // Keep log size manageable
+    if (this.operationLog.length > 1000) {
+      this.operationLog = this.operationLog.slice(-1000);
+    }
+
+    // Log to console
+    if (error) {
+      console.error(
+        `[${timestamp}] File operation failed: ${operation} on ${filePath}`,
+        error
+      );
+    } else {
+      console.log(
+        `[${timestamp}] File operation succeeded: ${operation} on ${filePath}`
+      );
+    }
+  }
+
+  /**
+   * Get the operation log
+   * @returns {Array} - The operation log
+   */
+  getOperationLog() {
+    return this.operationLog;
   }
 
   /**
@@ -19,8 +69,12 @@ class FileManager {
       try {
         await fs.access(dir);
         console.log(`Directory exists: ${dir}`);
+        this.logOperation('check_directory', dir);
       } catch (error) {
-        console.log(`Directory does not exist: ${dir}. Error: ${error.message}`);
+        console.log(
+          `Directory does not exist: ${dir}. Error: ${error.message}`
+        );
+        this.logOperation('check_directory', dir, error);
         // Don't create directories, just log the error
       }
     }
@@ -39,10 +93,11 @@ class FileManager {
       // Get the filename from the source path
       const filename = path.basename(sourcePath);
       const targetPath = path.join(targetDir, filename);
-      
+
       // Read the file content
       let content = await fs.readFile(sourcePath, 'utf8');
-      
+      this.logOperation('read_file', sourcePath);
+
       // If waiting input is provided, append it to the file
       if (waitingInput) {
         // Check if Waiting on Inputs section already exists
@@ -57,17 +112,20 @@ class FileManager {
           content += `\n\n## Waiting on Inputs\n${waitingInput}`;
         }
       }
-      
+
       // Write the file to the target directory
       await fs.writeFile(targetPath, content, 'utf8');
-      
+      this.logOperation('write_file', targetPath);
+
       // Delete the original file
       await fs.unlink(sourcePath);
-      
+      this.logOperation('delete_file', sourcePath);
+
       console.log(`Moved project file from ${sourcePath} to ${targetPath}`);
       return targetPath;
     } catch (error) {
       console.error(`Error moving project file:`, error);
+      this.logOperation('move_file', `${sourcePath} to ${targetDir}`, error);
       throw error;
     }
   }
@@ -80,11 +138,15 @@ class FileManager {
   async getProjectFiles(directory) {
     try {
       const files = await fs.readdir(directory);
-      return files
+      const projectFiles = files
         .filter(file => file.endsWith('.txt') && !file.startsWith('.'))
         .map(file => path.join(directory, file));
+
+      this.logOperation('list_directory', directory);
+      return projectFiles;
     } catch (error) {
       console.error(`Error reading directory ${directory}:`, error);
+      this.logOperation('list_directory', directory, error);
       return [];
     }
   }
@@ -98,12 +160,14 @@ class FileManager {
     try {
       const [content, stats] = await Promise.all([
         fs.readFile(filePath, 'utf8'),
-        fs.stat(filePath)
+        fs.stat(filePath),
       ]);
-      
+
+      this.logOperation('read_file', filePath);
       return { content, stats };
     } catch (error) {
       console.error(`Error reading project file ${filePath}:`, error);
+      this.logOperation('read_file', filePath, error);
       throw error;
     }
   }
@@ -117,10 +181,28 @@ class FileManager {
   async writeProjectFile(filePath, content) {
     try {
       await fs.writeFile(filePath, content, 'utf8');
+      this.logOperation('write_file', filePath);
       console.log(`Wrote project file ${filePath}`);
     } catch (error) {
       console.error(`Error writing project file ${filePath}:`, error);
+      this.logOperation('write_file', filePath, error);
       throw error;
+    }
+  }
+
+  /**
+   * Check if a file exists
+   * @param {string} filePath - File path to check
+   * @returns {Promise<boolean>} - True if file exists, throws error if not
+   */
+  async fileExists(filePath) {
+    try {
+      await fs.access(filePath, fs.constants.F_OK);
+      this.logOperation('check_file', filePath);
+      return true;
+    } catch (error) {
+      this.logOperation('check_file', filePath, error);
+      throw new Error(`File does not exist: ${filePath}`);
     }
   }
 }

@@ -47,6 +47,15 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
+        <button id="check-updates-btn" class="btn btn-primary flex items-center gap-2" title="Check for Updates">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 2v6h-6"></path>
+            <path d="M3 12a9 9 0 0 1 15-6.7l3-3"></path>
+            <path d="M3 22v-6h6"></path>
+            <path d="M21 12a9 9 0 0 1-15 6.7l-3 3"></path>
+          </svg>
+          Check Updates
+        </button>
         <button id="refresh-btn" class="btn btn-primary">Refresh Projects</button>
         <button id="sort-projects-btn" class="btn btn-primary">Sort Projects</button>
         <button id="formulate-projects-btn" class="btn btn-primary">Formulate Projects</button>
@@ -61,6 +70,7 @@
       <button class="tab-btn" data-tab="archive">Archive</button>
       <button class="tab-btn" data-tab="review">Review</button>
       <button class="tab-btn" data-tab="duplicates">Duplicates</button>
+      <button class="tab-btn" data-tab="analytics">Analytics</button>
     </div>
     
     <!-- Filter Bar -->
@@ -230,6 +240,88 @@
         </div>
       </div>
       
+      <!-- Analytics Tab -->
+      <div id="analytics-tab" class="tab-pane">
+        <div class="flex flex-wrap gap-5 mb-6">
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="total-projects-count">0</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Total Projects</div>
+          </div>
+          <div class="card p-5 flex-1 min-w-[180px] text-center">
+            <div class="text-3xl font-semibold text-primary-600 dark:text-primary-400 mb-2" id="actions-count">0</div>
+            <div class="text-secondary-500 dark:text-secondary-400">Actions (Last 14 Days)</div>
+          </div>
+        </div>
+        
+        <!-- Tabs for Analytics and Logs -->
+        <div class="mb-6">
+          <div class="flex border-b border-secondary-200 dark:border-secondary-700">
+            <button class="analytics-tab-btn active" data-analytics-tab="overview">Overview</button>
+            <button class="analytics-tab-btn" data-analytics-tab="logs">Logs</button>
+          </div>
+        </div>
+        
+        <!-- Overview Tab Content -->
+        <div id="analytics-overview-tab" class="analytics-tab-content active">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Project Status Chart -->
+            <div class="card p-6">
+              <h3 class="text-xl mb-4">Project Status Distribution</h3>
+              <div class="h-64">
+                <canvas id="project-status-chart"></canvas>
+              </div>
+            </div>
+            
+            <!-- Activity Chart -->
+            <div class="card p-6">
+              <h3 class="text-xl mb-4">Activity (Last 14 Days)</h3>
+              <div class="h-64">
+                <canvas id="activity-chart"></canvas>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Recent Status Changes -->
+          <div class="card p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl">Recent Status Changes</h3>
+            </div>
+            <div id="status-changes-list" class="max-h-96 overflow-y-auto">
+              <div class="text-center text-secondary-500 dark:text-secondary-400 py-8">Loading status changes...</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Logs Tab Content -->
+        <div id="analytics-logs-tab" class="analytics-tab-content hidden">
+          <div class="card p-6 mb-6">
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+              <h3 class="text-xl">Application Logs</h3>
+              <div class="flex flex-wrap gap-3">
+                <select id="log-type-filter" class="input max-w-[150px]">
+                  <option value="app">App Logs</option>
+                  <option value="error">Error Logs</option>
+                  <option value="renderer">Renderer Logs</option>
+                </select>
+                <select id="log-level-filter" class="input max-w-[150px]">
+                  <option value="all">All Levels</option>
+                  <option value="info">Info</option>
+                  <option value="warn">Warning</option>
+                  <option value="error">Error</option>
+                </select>
+                <button id="refresh-logs-btn" class="btn btn-primary">Refresh Logs</button>
+              </div>
+            </div>
+            <div id="logs-container" class="max-h-[70vh] overflow-y-auto border border-secondary-200 dark:border-secondary-700 rounded-md">
+              <div class="text-center text-secondary-500 dark:text-secondary-400 py-8">Loading logs...</div>
+            </div>
+            <div class="mt-4 text-right">
+              <button id="load-more-logs-btn" class="btn btn-secondary">Load More</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- Well-Formulation Tab -->
       <div id="well-formulation-tab" class="tab-pane">
         <h2 class="text-2xl mb-4">Well-Formulation</h2>
@@ -261,6 +353,60 @@
   
   <!-- Notification Container -->
   <div id="notification-container" class="fixed top-5 right-5 z-50 max-w-sm"></div>
+
+  <!-- Update Notification Modal -->
+  <div id="update-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-secondary-800 rounded-lg shadow-lg p-6 max-w-md w-full">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-medium" id="update-modal-title">Update Available</h3>
+        <button id="close-update-modal-btn" class="text-secondary-500 hover:text-secondary-700 dark:hover:text-secondary-300">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div id="update-modal-content" class="mb-6">
+        <div id="update-available-content" class="hidden">
+          <p class="mb-2">A new version of Project Tracker is available.</p>
+          <p class="mb-4"><strong>Version:</strong> <span id="update-version"></span></p>
+          <div id="update-notes" class="mb-4 max-h-40 overflow-y-auto p-3 bg-secondary-100 dark:bg-secondary-700 rounded"></div>
+          <div class="flex justify-end gap-3">
+            <button id="download-update-btn" class="btn btn-primary">Download Update</button>
+            <button id="skip-update-btn" class="btn btn-secondary">Later</button>
+          </div>
+        </div>
+        <div id="update-downloading-content" class="hidden">
+          <p class="mb-4">Downloading update...</p>
+          <div class="w-full bg-secondary-200 dark:bg-secondary-700 rounded-full h-2.5 mb-4">
+            <div id="download-progress-bar" class="bg-primary-600 h-2.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <p class="text-right text-sm text-secondary-500 dark:text-secondary-400">
+            <span id="download-progress-text">0%</span>
+          </p>
+        </div>
+        <div id="update-downloaded-content" class="hidden">
+          <p class="mb-4">Update has been downloaded and will be installed when you restart the application.</p>
+          <div class="flex justify-end gap-3">
+            <button id="restart-app-btn" class="btn btn-primary">Restart Now</button>
+            <button id="restart-later-btn" class="btn btn-secondary">Later</button>
+          </div>
+        </div>
+        <div id="update-not-available-content" class="hidden">
+          <p class="mb-4">You're already using the latest version of Project Tracker.</p>
+          <div class="flex justify-end">
+            <button id="close-no-update-btn" class="btn btn-primary">OK</button>
+          </div>
+        </div>
+        <div id="update-error-content" class="hidden">
+          <p class="mb-2 text-error-600 dark:text-error-400">Error checking for updates</p>
+          <p id="update-error-message" class="mb-4"></p>
+          <div class="flex justify-end">
+            <button id="close-error-btn" class="btn btn-primary">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Phase Completion Modal -->
   <div id="phase-completion-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">

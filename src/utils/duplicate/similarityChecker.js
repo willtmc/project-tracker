@@ -13,14 +13,31 @@ class SimilarityChecker {
    */
   extractKeywords(text) {
     // Remove common stop words and split by non-alphanumeric characters
-    const stopWords = ['a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'about', 'as'];
-    
+    const stopWords = [
+      'a',
+      'an',
+      'the',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'with',
+      'by',
+      'about',
+      'as',
+    ];
+
     // Convert to lowercase and split by non-alphanumeric characters
-    const words = text.toLowerCase()
+    const words = text
+      .toLowerCase()
       .replace(/[^a-z0-9\s]/g, ' ')
       .split(/\s+/)
       .filter(word => word.length > 2 && !stopWords.includes(word));
-    
+
     return [...new Set(words)]; // Remove duplicates
   }
 
@@ -34,26 +51,27 @@ class SimilarityChecker {
     // Extract titles
     const title1 = (project1.title || '').toLowerCase();
     const title2 = (project2.title || '').toLowerCase();
-    
+
     // Check for common keywords in titles
     const keywords1 = this.extractKeywords(title1);
     const keywords2 = this.extractKeywords(title2);
-    
+
     // Find common keywords
-    const commonKeywords = keywords1.filter(keyword => 
+    const commonKeywords = keywords1.filter(keyword =>
       keywords2.includes(keyword)
     );
-    
+
     // Log for debugging
     console.log(`Title 1: "${title1}" - Keywords: [${keywords1.join(', ')}]`);
     console.log(`Title 2: "${title2}" - Keywords: [${keywords2.join(', ')}]`);
     console.log(`Common keywords: [${commonKeywords.join(', ')}]`);
-    
+
     // If there are significant common keywords, consider them similar
     // Either multiple common keywords or one significant keyword
-    const significantMatch = commonKeywords.length >= 2 || 
+    const significantMatch =
+      commonKeywords.length >= 2 ||
       (commonKeywords.length === 1 && commonKeywords[0].length > 5);
-    
+
     return significantMatch;
   }
 
